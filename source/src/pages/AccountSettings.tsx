@@ -38,6 +38,8 @@ export default function AccountSettings() {
   const { context } = useSession();
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const revokeAllSessions = useMutation(api.managedAccounts.revokeAllSessions);
+  const [revoking, setRevoking] = useState(false);
   const updateName = useMutation(api.tenancy.updateProfileName);
   const changePassword = useAction(api.authActions.changePassword);
   const regenerateRecovery = useAction(
@@ -124,6 +126,20 @@ export default function AccountSettings() {
       toast.error(errorMessage(caught, "صدور کد بازیابی ممکن نشد."));
     } finally {
       setRecoveryLoading(false);
+    }
+  };
+
+  const handleSignOutEverywhere = async () => {
+    if (!window.confirm("از تمام دستگاه‌ها، از جمله همین دستگاه، خارج شوید؟")) return;
+    setRevoking(true);
+    try {
+      await revokeAllSessions({});
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      toast.error(errorMessage(error, "خروج از دستگاه‌ها ممکن نشد."));
+    } finally {
+      setRevoking(false);
     }
   };
 
@@ -427,6 +443,16 @@ export default function AccountSettings() {
               </Button>
             </section>
 
+            {import.meta.env.VITE_MANAGED_ACCOUNTS === "true" && (
+              <section className="clay-inset rounded-[26px] p-5">
+                <h2 className="text-sm font-extrabold">دستگاه‌های متصل</h2>
+                <p className="mt-2 text-xs leading-6 text-muted-foreground">با خروج همگانی، ورود دوباره در همهٔ دستگاه‌ها لازم می‌شود.</p>
+                <Button variant="outline" className="mt-3 w-full" disabled={revoking} onClick={handleSignOutEverywhere}>
+                  {revoking ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
+                  خروج از همهٔ دستگاه‌ها
+                </Button>
+              </section>
+            )}
             <section className="clay-inset rounded-[26px] p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary" className="rounded-full text-[10px]">

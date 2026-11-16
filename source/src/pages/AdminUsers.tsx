@@ -1,3 +1,4 @@
+import { AdminAccountEditor } from "@/components/AdminAccountEditor";
 import { ManagedAccountForm } from "@/components/ManagedAccountForm";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +64,8 @@ type UserRow = {
     employeeActive: boolean | null;
   } | null;
   lastLoginAt: number | null;
+  lastActivityAt?: number | null;
+  phoneVerified?: boolean;
   createdAt: number;
 };
 type ListData = {
@@ -83,6 +86,7 @@ const PAGE_SIZE = 12;
 export default function AdminUsers() {
   const { context } = useSession();
   const [search, setSearch] = useState("");
+  const [editTarget, setEditTarget] = useState<Id<"users"> | null>(null);
   const [roleFilter, setRoleFilter] = useState("all");
   const [blockedFilter, setBlockedFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -304,7 +308,8 @@ export default function AdminUsers() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {canAssignRole && (
+                      {context?.isPlatformOwner && import.meta.env.VITE_MANAGED_ACCOUNTS === "true" && <Button type="button" variant="ghost" size="sm" onClick={()=>setEditTarget(row.id)}>مشخصات و دسترسی</Button>}
+                      {canAssignRole && !row.isSuperAdmin && (
                         <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setRoleTarget(row)} className="h-8 rounded-lg text-[9px]">
                           <UserCog className="size-3.5" /> نقش مدیریتی
                         </Button>
@@ -347,6 +352,7 @@ export default function AdminUsers() {
         </section>
       </div>
 
+      {editTarget && <AdminAccountEditor key={editTarget} userId={editTarget} onClose={()=>setEditTarget(null)} />}
       <Dialog open={blockTarget !== null} onOpenChange={(open) => !open && setBlockTarget(null)}>
         <DialogContent className="clay max-w-md rounded-[28px] border-0">
           <DialogHeader className="text-start">
@@ -404,7 +410,7 @@ export default function AdminUsers() {
                 <SelectValue placeholder="انتخاب نقش جدید" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
-                {(data?.roles ?? []).filter((role) => !roleTarget?.roles.some((current) => current.key === role.key)).map((role) => (
+                {(data?.roles ?? []).filter((role) => role.key !== "super_admin" && !roleTarget?.roles.some((current) => current.key === role.key)).map((role) => (
                   <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                 ))}
               </SelectContent>

@@ -89,7 +89,9 @@ export async function getSessionForUser(
         }
       }
     }
-    adminPermissions = [...collected] as AdminPermission[];
+    adminPermissions = user.adminPermissionOverride !== undefined
+      ? user.adminPermissionOverride.filter(isAdminPermission)
+      : [...collected] as AdminPermission[];
   }
   const isGuest = user.isAnonymous === true;
 

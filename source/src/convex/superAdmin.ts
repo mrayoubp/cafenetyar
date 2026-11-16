@@ -282,7 +282,7 @@ export const disableMfa = mutation({
     await assertMfaAttemptAllowed(ctx, session.user._id);
     if (!verifyTotp(security.totpSecret, args.code)) {
       await recordMfaFailure(ctx, session.user._id, "mfa_disable_failed");
-      fail("validation", "کد تأیید نادرست است.");
+      return { ok: false, message: "کد تأیید نادرست است." };
     }
     await ctx.db.patch(security._id, {
       mfaEnabled: false,

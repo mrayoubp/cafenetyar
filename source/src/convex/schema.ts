@@ -240,6 +240,8 @@ const schema = defineSchema(
       phoneVerificationTime: v.optional(v.number()),
       lastActivityAt: v.optional(v.number()),
       sessionsRevokedAt: v.optional(v.number()),
+      adminPermissionOverride: v.optional(v.array(v.string())),
+      lastLoginAt: v.optional(v.number()),
       termsAcceptedAt: v.optional(v.number()), // when the owner accepted the terms
       isBlocked: v.optional(v.boolean()),
       blockedAt: v.optional(v.number()),

@@ -328,7 +328,8 @@ export default function SuperAdmin() {
     setReauthBusy(true);
     setReauthError(null);
     try {
-      await verifyMfa({ code: reauthCode.trim() });
+      const verification = await verifyMfa({ code: reauthCode.trim() });
+      if (!verification.ok) throw new Error("کد تأیید نادرست است.");
       if (reauth.kind === "restore") {
         await restoreSettings({ historyId: reauth.historyId });
         toast.success("تنظیمات به نسخه انتخاب‌شده بازگردانده شد.");

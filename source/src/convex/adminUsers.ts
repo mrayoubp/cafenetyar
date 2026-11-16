@@ -118,8 +118,7 @@ export const list = query({
         isBlocked: Boolean(user.isBlocked),
         blockedReason: user.blockedReason ?? null,
         blockedAt: user.blockedAt ?? null,
-        isSuperAdmin:
-          user.role === "admin" || roleKeys.includes(SUPER_ADMIN_ROLE_KEY),
+        isSuperAdmin: user.role === "admin",
         roles: roles.map((role) => ({
           assignmentId: assignments.find(
             (assignment) => assignment.roleId === role._id,
@@ -137,7 +136,7 @@ export const list = query({
               employeeActive: employee?.active ?? null,
             }
           : null,
-        lastLoginAt: await lastSessionAt(ctx, user._id),
+        lastLoginAt: user.lastLoginAt ?? await lastSessionAt(ctx, user._id),
         createdAt: user._creationTime,
         phoneVerified: Boolean(user.phoneVerificationTime),
         lastActivityAt: user.lastActivityAt ?? null,

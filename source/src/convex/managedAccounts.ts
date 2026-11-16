@@ -2,8 +2,8 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { requirePlatformOwner, requireSession, getSession } from "./lib/access";
 import { ensurePlatformDefaults, logAudit } from "./lib/platform";
-import { requirePhone, fail, validateCafeInput } from "./lib/validation";
-import { SUPER_ADMIN_ROLE_KEY } from "./lib/adminPermissions";
+import { requirePhone, requireText, fail, validateCafeInput } from "./lib/validation";
+import { SUPER_ADMIN_ROLE_KEY, isAdminPermission, ADMIN_PERMISSION_DEFINITIONS } from "./lib/adminPermissions";
 import { createWorkspace } from "./tenancy";
 import { getAuthSessionId } from "@convex-dev/auth/server";
 
@@ -82,5 +82,55 @@ export const recordSession = mutation({args:{},handler:async ctx=>{
   const row=await ctx.db.get(id);if(!row)return;
   const recent=await ctx.db.query("audit_logs").withIndex("by_actor_created",q=>q.eq("actorId",session.user._id).gte("createdAt",row._creationTime)).collect();
   if(recent.some(x=>x.action==="account.login"&&x.entityId===id))return;
+  await ctx.db.patch(session.user._id,{lastLoginAt:row._creationTime});
   await logAudit(ctx,{actorId:session.user._id,action:"account.login",entityType:"session",entityId:id,summary:"ورود به حساب با نشست معتبر",metadata:JSON.stringify({phoneVerified:Boolean(session.user.phoneVerificationTime)})});
 }});
+
+export const adminDetails = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    await requirePlatformOwner(ctx);
+    const user = await ctx.db.get(userId);
+    if (!user) fail("not_found", "حساب پیدا نشد.");
+    const assignments = await ctx.db.query("admin_user_roles").withIndex("by_user", q => q.eq("userId", userId)).collect();
+    const rolePermissions = new Set<string>();
+    for (const assignment of assignments) {
+      const role = await ctx.db.get(assignment.roleId);
+      if (!role?.isActive) continue;
+      for (const p of await ctx.db.query("admin_role_permissions").withIndex("by_role", q => q.eq("roleId", role._id)).collect()) {
+        if (isAdminPermission(p.permissionKey)) rolePermissions.add(p.permissionKey);
+      }
+    }
+    const sessions = await ctx.db.query("authSessions").withIndex("userId", q => q.eq("userId", userId)).collect();
+    const activity = await ctx.db.query("audit_logs").withIndex("by_actor_created", q => q.eq("actorId", userId)).order("desc").take(30);
+    return {
+      id: user._id, name: user.name ?? "", phone: user.phone ?? "", isOwner: user.role === "admin",
+      isAdmin: assignments.length > 0, phoneVerified: Boolean(user.phoneVerificationTime),
+      lastLoginAt: user.lastLoginAt ?? null, lastActivityAt: user.lastActivityAt ?? null,
+      activeSessions: sessions.filter(s => s.expirationTime > Date.now()).length,
+      permissionOverride: user.adminPermissionOverride ?? null,
+      rolePermissions: [...rolePermissions], catalog: ADMIN_PERMISSION_DEFINITIONS,
+      activity: activity.map(a => ({id:a._id, summary:a.summary, action:a.action, createdAt:a.createdAt})),
+    };
+  },
+});
+
+export const updateAdmin = mutation({
+  args: { userId: v.id("users"), name: v.string(), permissionOverride: v.union(v.null(), v.array(v.string())) },
+  handler: async (ctx, args) => {
+    const owner = await requirePlatformOwner(ctx);
+    const user = await ctx.db.get(args.userId);
+    if (!user) fail("not_found", "حساب پیدا نشد.");
+    if (user.role === "admin") fail("forbidden", "حساب مالک از این فرم قابل تغییر نیست.");
+    const roles = await ctx.db.query("admin_user_roles").withIndex("by_user", q => q.eq("userId", user._id)).collect();
+    if (!roles.length) fail("validation", "ابتدا یک نقش مدیریتی به این حساب اختصاص دهید.");
+    const name = requireText(args.name, "نام و نام خانوادگی", 3, 100);
+    const permissions = args.permissionOverride === null ? undefined : [...new Set(args.permissionOverride)];
+    if (permissions?.some(p => !isAdminPermission(p))) fail("validation", "مجوز نامعتبر است.");
+    const before = { name: user.name, permissionOverride: user.adminPermissionOverride ?? null };
+    await ctx.db.patch(user._id, {name, adminPermissionOverride: permissions});
+    await logAudit(ctx, {actorId:owner.user._id, action:"admin.profile_updated", entityType:"user", entityId:user._id,
+      summary:`ویرایش مشخصات و دسترسی‌های ${name}`, metadata:JSON.stringify({before,after:{name,permissionOverride:permissions ?? null}})});
+    return {ok:true};
+  },
+});
