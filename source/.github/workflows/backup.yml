@@ -1,0 +1,52 @@
+name: Daily production backup
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Export and verify Convex data
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Export production data
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: |
+          chmod +x scripts/backup.sh
+          BACKUP_DIR="$RUNNER_TEMP/backups" ./scripts/backup.sh
+
+      - name: Upload verified backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: convex-prod-backup-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/backups/prod-*.zip
+            ${{ runner.temp }}/backups/prod-*.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remind about off-site retention
+        run: |
+          echo "Artifact retention is 30 days. Configure BACKUP_REMOTE with rclone on a self-hosted runner for longer off-site retention."
+          echo "A green workflow is not a restore drill. Test restore into staging separately."
