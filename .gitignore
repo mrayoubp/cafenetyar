@@ -10,3 +10,5 @@ native/original-assets.generated.mjs
 backups/
 .dev.vars
 .wrangler/
+
+.cloudflare-deploy.generated.json
