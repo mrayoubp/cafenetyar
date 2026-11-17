@@ -399,9 +399,9 @@ function SidebarBody({
         </div>
       )}
 
-      {isSiteAdmin && (
+      {(isSiteAdmin || import.meta.env.VITE_SITE_ADMIN === "true") && (
         <Link
-          to="/admin"
+          to="/manage"
           onClick={onNavigate}
           className="clay-sm mt-3 flex items-center gap-2 rounded-2xl px-3 py-2.5 text-[12px] font-bold text-primary"
         >

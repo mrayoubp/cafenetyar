@@ -3,3 +3,5 @@ node_modules/
 .convex/
 *.tsbuildinfo
 source/dist/
+
+native/original-assets.generated.mjs

@@ -1,7 +1,7 @@
+import { MonthlyPlanCard, TELEGRAM_PURCHASE_URL } from "@/components/MonthlyPlanCard";
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useSession } from "@/hooks/use-session";
@@ -10,16 +10,12 @@ import { faDateLong, faNumber, faToman } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
-  ArrowUpCircle,
   CalendarClock,
   Check,
   CreditCard,
   FileText,
   Info,
   Loader2,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles,
   TimerReset,
   TriangleAlert,
   X,
@@ -141,10 +137,6 @@ type BillingData = {
   orders: Order[];
 };
 
-function planPrice(plan: Plan, cycle: Cycle) {
-  return cycle === "yearly" ? plan.yearlyPriceToman : plan.monthlyPriceToman;
-}
-
 function usagePercent(used: number, limit: number) {
   if (limit <= 0) return 0;
   return Math.min(100, Math.round((used / limit) * 100));
@@ -155,19 +147,12 @@ export default function Subscription() {
   const billing = useQuery(api.billing.mySubscription, {}) as
     | BillingData
     | undefined;
-  const plansQuery = useQuery(api.tenancy.listPlans, {});
-  const plans = (plansQuery ?? []) as Plan[];
-  const createOrder = useMutation(api.billing.createOrder);
   const cancelOrder = useMutation(api.billing.cancelOrder);
-  const startPayment = useAction(api.billing.startPayment);
   const confirmPayment = useAction(api.billing.confirmPayment);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const callbackStarted = useRef(false);
 
-  const [cycle, setCycle] = useState<Cycle>("monthly");
-  const [discountCode, setDiscountCode] = useState("");
-  const [buying, setBuying] = useState<string | null>(null);
   const [notice, setNotice] = useState<{
     tone: "success" | "warning" | "error";
     title: string;
@@ -248,82 +233,12 @@ export default function Subscription() {
     remainingDays <= 7 &&
     billing?.status !== "canceled";
 
-  const startPurchase = async (plan: Plan, selectedCycle: Cycle) => {
-    const price = planPrice(plan, selectedCycle);
-    if (price <= 0) {
-      setNotice({
-        tone: "warning",
-        title: "قیمت این پلن هنوز تعیین نشده است",
-        message:
-          "مدیر کافی‌نت‌یار باید ابتدا قیمت ماهانه و سالانه را در پنل مالی تعیین کند. هیچ مبلغی از شما دریافت نمی‌شود.",
-      });
-      return;
-    }
-    setBuying(`${plan.code}-${selectedCycle}`);
-    setNotice(null);
-    try {
-      const created = await createOrder({
-        planCode: plan.code,
-        billingCycle: selectedCycle,
-        discountCode: discountCode.trim() || undefined,
-      });
-      const payment = await startPayment({ orderId: created.order.id as Id<"payment_orders"> });
-      if (payment.redirectUrl) {
-        window.location.assign(payment.redirectUrl);
-        return;
-      }
-      setNotice({
-        tone: "warning",
-        title: payment.alreadyPaid ? "این سفارش قبلاً پرداخت شده است" : "سفارش ثبت شد؛ درگاه تنظیم نشده است",
-        message:
-          payment.message ??
-          "سفارش شما در انتظار اتصال درگاه است و اشتراک فقط پس از تأیید قطعی فعال می‌شود.",
-        orderNumber: created.order.orderNumber,
-      });
-    } catch (error) {
-      setNotice({
-        tone: "error",
-        title: "ایجاد پرداخت ممکن نشد",
-        message: errorMessage(error, "سفارش ثبت نشد."),
-      });
-    } finally {
-      setBuying(null);
-    }
-  };
-
   const handleCancelOrder = async (order: Order) => {
     try {
       await cancelOrder({ orderId: order.id as Id<"payment_orders"> });
       toast.success("سفارش لغو شد.");
     } catch (error) {
       toast.error(errorMessage(error, "لغو سفارش ممکن نشد."));
-    }
-  };
-
-  const retryOrder = async (order: Order) => {
-    setBuying(order.id);
-    try {
-      const payment = await startPayment({ orderId: order.id as Id<"payment_orders"> });
-      if (payment.redirectUrl) {
-        window.location.assign(payment.redirectUrl);
-      } else {
-        setNotice({
-          tone: "warning",
-          title: "درگاه هنوز آماده نیست",
-          message:
-            payment.message ??
-            "سفارش شما ثبت شده است و پس از تنظیم درگاه قابل پیگیری خواهد بود.",
-          orderNumber: order.orderNumber,
-        });
-      }
-    } catch (error) {
-      setNotice({
-        tone: "error",
-        title: "پیگیری پرداخت ممکن نشد",
-        message: errorMessage(error, "درخواست پرداخت انجام نشد."),
-      });
-    } finally {
-      setBuying(null);
     }
   };
 
@@ -342,38 +257,17 @@ export default function Subscription() {
                 اشتراک من
               </span>
               <h1 className="mt-3 text-xl font-extrabold tracking-tight sm:text-2xl">
-                پلن مناسب کافی‌نت را انتخاب کنید
+                اشتراک یک‌ماهه کافی‌نت‌یار
               </h1>
               <p className="mt-2 max-w-2xl text-[11.5px] leading-6 text-muted-foreground">
-                قیمت‌ها، تخفیف‌ها و سهمیه‌ها از پنل مدیر خوانده می‌شوند. هیچ
-                مبلغی بدون تأیید سمت سرور و درگاه معتبر به اشتراک تبدیل نمی‌شود.
+                خرید و تمدید اشتراک یک‌ماهه با قیمت ۵۰۰ هزار تومان، از طریق پشتیبانی تلگرام انجام می‌شود.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="clay-inset flex rounded-xl p-1">
-                {(["monthly", "yearly"] as const).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setCycle(item)}
-                    className={cn(
-                      "rounded-lg px-3 py-1.5 text-[10px] font-bold transition-colors",
-                      cycle === item
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {item === "monthly" ? "ماهانه" : "سالانه"}
-                  </button>
-                ))}
-              </div>
-              <Badge variant="secondary" className="rounded-full text-[9.5px]">
-                <ShieldCheck className="me-1 size-3" />
-                فعال‌سازی پس از تأیید پرداخت
-              </Badge>
-            </div>
+
           </div>
         </section>
+
+        <MonthlyPlanCard />
 
         {notice && (
           <div
@@ -535,140 +429,9 @@ export default function Subscription() {
                   </>
                 ) : (
                   <p className="mt-3 rounded-xl bg-muted/50 p-3 text-[10px] leading-5 text-muted-foreground">
-                    ایجنت هوشمند در پلن فعلی فعال نیست. با ارتقا به پلن حرفه‌ای
-                    یا ویژه، سهمیه ماهانه دریافت می‌کنید.
+                    ایجنت هوشمند در اشتراک فعلی شما فعال نیست. برای بررسی دسترسی‌ها با پشتیبانی تلگرام تماس بگیرید.
                   </p>
                 )}
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <div className="flex flex-wrap items-end justify-between gap-2 px-1">
-                <div>
-                  <h2 className="text-sm font-extrabold">پلن‌های قابل انتخاب</h2>
-                  <p className="mt-1 text-[10.5px] text-muted-foreground">
-                    قیمت و امکانات هر پلن از پنل مدیر قابل تغییر است؛ این کارت‌ها
-                    فقط داده سرور را نمایش می‌دهند.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={discountCode}
-                    onChange={(event) => setDiscountCode(event.target.value.toUpperCase())}
-                    placeholder="کد تخفیف"
-                    className="h-9 w-32 rounded-xl text-[10px]"
-                    dir="ltr"
-                  />
-                  <span className="text-[9px] text-muted-foreground">در مرحله خرید اعتبارسنجی می‌شود</span>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {plans.map((plan) => {
-                  const isCurrent = billing.subscription?.planCode === plan.code;
-                  const price = planPrice(plan, cycle);
-                  const busy = buying === `${plan.code}-${cycle}`;
-                  const entitlements = plan.entitlements;
-                  return (
-                    <article
-                      key={plan.code}
-                      className={cn(
-                        "clay relative flex flex-col rounded-[28px] p-5",
-                        isCurrent && "ring-2 ring-primary/50",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="text-base font-extrabold">{plan.name}</h3>
-                          <p className="mt-1 text-[9.5px] leading-5 text-muted-foreground">
-                            {plan.description ?? "پلن اشتراک کافی‌نت‌یار"}
-                          </p>
-                        </div>
-                        {plan.code === "premium" ? (
-                          <Sparkles className="size-4 text-amber-500" />
-                        ) : (
-                          <CreditCard className="size-4 text-primary/70" />
-                        )}
-                      </div>
-
-                      <div className="mt-4 flex items-end gap-1">
-                        <p className="text-xl font-extrabold">
-                          {price > 0 ? faNumber(price) : "تعیین‌نشده"}
-                        </p>
-                        {price > 0 && (
-                          <span className="mb-0.5 text-[9px] text-muted-foreground">
-                            تومان / {cycle === "yearly" ? "سال" : "ماه"}
-                          </span>
-                        )}
-                      </div>
-                      {cycle === "yearly" && plan.yearlyDiscountPercent > 0 && (
-                        <Badge className="mt-2 w-fit rounded-full text-[8.5px]">
-                          {faNumber(plan.yearlyDiscountPercent)}٪ تخفیف سالانه
-                        </Badge>
-                      )}
-
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        <span className="rounded-full bg-muted/60 px-2 py-1 text-[8.5px]">
-                          {entitlements?.maxEmployees === -1
-                            ? "کارمندان نامحدود"
-                            : `${faNumber(entitlements?.maxEmployees ?? 0)} کارمند`}
-                        </span>
-                        <span className="rounded-full bg-muted/60 px-2 py-1 text-[8.5px]">
-                          {entitlements?.aiRequestsPerMonth
-                            ? `${faNumber(entitlements.aiRequestsPerMonth)} درخواست AI`
-                            : "بدون ایجنت"}
-                        </span>
-                        <span className="rounded-full bg-muted/60 px-2 py-1 text-[8.5px]">
-                          {entitlements?.accounting === "full"
-                            ? "حسابداری کامل"
-                            : "حسابداری محدود"}
-                        </span>
-                      </div>
-
-                      <ul className="mt-4 space-y-2">
-                        {plan.features.map((feature) => (
-                          <li key={feature} className="flex items-start gap-2 text-[10px] leading-5">
-                            <Check className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                            <span className="text-muted-foreground">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-
-                      <div className="mt-auto pt-5">
-                        <Button
-                          type="button"
-                          disabled={busy || price <= 0}
-                          onClick={() => void startPurchase(plan, cycle)}
-                          className={cn(
-                            "h-10 w-full rounded-xl border-0 text-[10.5px] font-bold",
-                            isCurrent
-                              ? "bg-primary/10 text-primary hover:bg-primary/15"
-                              : "clay-primary hover:brightness-105",
-                          )}
-                        >
-                          {busy ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : isCurrent ? (
-                            <>
-                              <RefreshCw className="size-3.5" />
-                              تمدید پلن فعلی
-                            </>
-                          ) : (
-                            <>
-                              <ArrowUpCircle className="size-3.5" />
-                              خرید و فعال‌سازی
-                            </>
-                          )}
-                        </Button>
-                        {price <= 0 && (
-                          <p className="mt-2 text-center text-[8.5px] text-muted-foreground">
-                            قیمت این دوره هنوز توسط مدیر تعیین نشده است.
-                          </p>
-                        )}
-                      </div>
-                    </article>
-                  );
-                })}
               </div>
             </section>
 
@@ -721,8 +484,7 @@ export default function Subscription() {
                 </div>
                 {billing.orders.filter((order) => order.status === "pending").length === 0 ? (
                   <p className="mt-3 rounded-xl bg-muted/50 p-3 text-[10px] text-muted-foreground">
-                    سفارش در انتظاری وجود ندارد. برای تمدید یا ارتقا از کارت‌های
-                    بالا استفاده کنید.
+                    سفارش در انتظاری وجود ندارد. برای خرید یا تمدید از دکمهٔ تلگرام بالا استفاده کنید.
                   </p>
                 ) : (
                   <div className="mt-3 space-y-2">
@@ -743,14 +505,8 @@ export default function Subscription() {
                             {` · ${faDateLong(order.createdAt)}`}
                           </p>
                           <div className="mt-2 flex gap-1.5">
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => void retryOrder(order)}
-                              disabled={buying !== null}
-                              className="h-7 rounded-lg px-2 text-[8.5px]"
-                            >
-                              {buying === order.id ? <Loader2 className="size-3 animate-spin" /> : "پیگیری پرداخت"}
+                            <Button asChild size="sm" className="h-7 rounded-lg px-2 text-[8.5px]">
+                              <a href={TELEGRAM_PURCHASE_URL} target="_blank" rel="noopener noreferrer">پیگیری در تلگرام</a>
                             </Button>
                             <Button
                               type="button"
@@ -773,10 +529,7 @@ export default function Subscription() {
               <div className="clay-inset flex items-start gap-2 rounded-[24px] p-4 text-[10px] leading-5 text-muted-foreground">
                 <Info className="mt-0.5 size-4 shrink-0 text-primary" />
                 <p>
-                  پلن فعلی: {currentPlan.name}. تمدید به‌صورت پرداخت دستی و از طریق
-                  درگاه انجام می‌شود؛ برداشت خودکار دوره‌ای وجود ندارد. اگر درگاه
-                  متصل نباشد، سفارش ثبت می‌شود اما هیچ مبلغی دریافت و هیچ اشتراکی
-                  فعال نمی‌شود.
+                  اشتراک ثبت‌شدهٔ فعلی: {currentPlan.name}. برای خرید یا تمدید اشتراک یک‌ماهه با قیمت ۵۰۰ هزار تومان، از دکمهٔ تلگرام استفاده کنید.
                   {context?.cafe ? ` کافی‌نت: ${context.cafe.name}` : ""}
                 </p>
               </div>

@@ -1,3 +1,5 @@
+import { MonthlyPlanCard } from "@/components/MonthlyPlanCard";
+import { useManagedSettings } from "@/hooks/use-managed-content";
 import { Logo, LogoMark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
@@ -170,6 +172,7 @@ export default function Landing() {
   const site = useQuery(api.siteCms.publicSite, {});
   const publicNav = useQuery(api.siteCms.publicNavigation, { location: "public" });
   const footerNav = useQuery(api.siteCms.publicNavigation, { location: "footer" });
+  const managed = useManagedSettings();
   const home = site?.home;
   const sectionOrder = home?.sectionOrder ?? [...SECTION_ORDER_KEYS];
   const orderFor = (key: (typeof SECTION_ORDER_KEYS)[number]) => {
@@ -230,6 +233,7 @@ export default function Landing() {
 
           <div className="ms-auto flex items-center gap-2 md:ms-0">
             <ThemeToggle />
+            <a href="/manage" className="rounded-xl px-3 py-2 text-[11.5px] font-semibold text-primary hover:bg-card">مدیریت سایت</a>
             <Button
               asChild
               variant="ghost"
@@ -287,7 +291,7 @@ export default function Landing() {
                 variants={rise}
                 className="mt-5 whitespace-pre-line text-[2rem] font-extrabold leading-[1.45] tracking-tight sm:text-[2.6rem] sm:leading-[1.4]"
               >
-                {home?.heroTitle ?? (
+                {managed.heroTitle || home?.heroTitle || (
                   <>
                     همه ابزارهای کافی‌نت،
                     <br />
@@ -317,7 +321,7 @@ export default function Landing() {
                 variants={rise}
                 className="mt-5 max-w-xl text-[13px] leading-7 text-muted-foreground sm:text-sm sm:leading-8"
               >
-                {home?.heroSubtitle ??
+                {managed.heroSubtitle || home?.heroSubtitle ||
                   "کافی‌نت‌یار فضای کاری فارسی کافی‌نت‌داران است؛ دفتر مالی ماندگار، اخبار روز، دسترسی سریع به سامانه‌ها و دستیار هوشمند. هر کافی‌نت داده و دسترسی مستقل خودش را دارد."}
               </motion.p>
 
@@ -803,89 +807,11 @@ export default function Landing() {
         >
           <SectionHead
             eyebrow="اشتراک"
-            title="پلنی که با اندازه کافی‌نت شما رشد می‌کند"
-            description="پایه، حرفه‌ای و ویژه؛ با پرداخت ماهانه یا سالانه. قیمت، سهمیه هوش مصنوعی و امکانات هر پلن از پنل مدیر تعیین می‌شود و در صفحه «اشتراک من» نمایش داده می‌شود."
+            title="اشتراک یک‌ماهه کافی‌نت‌یار"
+            description="۵۰۰ هزار تومان برای یک ماه؛ خرید و تمدید با هماهنگی در تلگرام."
           />
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                title: "پایه",
-                detail: "برای شروع منعطف؛ مناسب کافی‌نت‌های کوچک.",
-                perks: [
-                  "داشبورد و مدیریت پایه",
-                  "بانک سایت‌های کاربردی",
-                  "حسابداری محدود و اخبار",
-                  "حداکثر ۲ کارمند",
-                ],
-              },
-              {
-                title: "حرفه‌ای",
-                detail: "برای کافی‌نت‌های فعالی که به ابزارهای کامل نیاز دارند.",
-                perks: [
-                  "حسابداری کامل",
-                  "ایجنت هوشمند با سهمیه ماهانه",
-                  "نرخ‌نامه و ماشین‌حساب",
-                  "گزارش‌های مدیریتی پیشرفته",
-                ],
-                featured: true,
-              },
-              {
-                title: "ویژه",
-                detail: "ظرفیت بالا و ابزارهای تکمیلی برای مجموعه‌های بزرگ.",
-                perks: [
-                  "همه امکانات حرفه‌ای",
-                  "سهمیه بالاتر هوش مصنوعی",
-                  "کارمندان بیشتر یا نامحدود",
-                  "اولویت پشتیبانی",
-                ],
-              },
-            ].map((plan) => (
-              <div
-                key={plan.title}
-                className={cn(
-                  "relative rounded-[30px] p-6",
-                  plan.featured ? "clay" : "clay-inset",
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-[14px] font-extrabold">{plan.title}</h3>
-                    <p className="mt-1.5 text-[11px] leading-6 text-muted-foreground">
-                      {plan.detail}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[9.5px] font-semibold text-muted-foreground">
-                    اشتراک
-                  </span>
-                </div>
-
-                <div className="clay-sm mt-5 rounded-2xl px-3 py-3 text-center text-[10px] font-semibold text-muted-foreground">
-                  قیمت ماهانه و سالانه در پنل اشتراک نمایش داده می‌شود
-                </div>
-
-                <ul className="mt-4 space-y-2">
-                  {plan.perks.map((perk) => (
-                    <li
-                      key={perk}
-                      className="flex items-center gap-2 text-[11px] text-muted-foreground"
-                    >
-                      <span className="grid size-4 place-items-center rounded-full bg-primary/10">
-                        <Check className="size-2.5 text-primary" strokeWidth={3} />
-                      </span>
-                      {perk}
-                    </li>
-                  ))}
-                </ul>
-
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="mt-5 h-10 w-full rounded-xl bg-muted/60 text-[11.5px] font-semibold text-muted-foreground hover:bg-muted"
-                >
-                  <Link to="/dashboard/subscription">مشاهده قیمت و خرید</Link>
-                </Button>
-              </div>
-            ))}
+          <div className="mt-8">
+            <MonthlyPlanCard />
           </div>
         </section>
 

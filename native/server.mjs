@@ -1,3 +1,4 @@
+import {bridge} from './bridge.mjs';
 import library from './library.json' with { type: 'json' };
 import { html } from './ui.mjs';
 const PERMISSIONS=['accounts.view','content.edit','support.manage','audit.view','settings.edit'];
@@ -33,6 +34,8 @@ export default {async fetch(request,env){try{
   if(Number(request.headers.get('content-length')||0)>1500000)fail('حجم درخواست زیاد است.',413);
  }
  let body={};if(request.method==='POST'){const raw=await request.text();if(raw.length>1500000)fail('حجم درخواست زیاد است.',413);try{body=JSON.parse(raw);}catch{fail('اطلاعات معتبر نیست.');}}
+ if(path==='/api/bridge'){const bridgeRequest=request.method==='POST'?new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify(body)}):request;return await bridge(bridgeRequest,db,(await contentRows(db)).filter(x=>x.published));}
+ if(path==='/api/branding'&&request.method==='GET'){const row=await one(db,"SELECT value FROM settings WHERE id='site'");return json(row?JSON.parse(row.value):{});}
  if(path==='/api/public'&&request.method==='GET'){
   const settings=await one(db,"SELECT value FROM settings WHERE id='site'");
   return json({settings:settings?JSON.parse(settings.value):{title:'کافی‌نت‌یار',tagline:'مدیریت ساده‌تر، وقت بیشتر برای مشتریان'},content:(await contentRows(db)).filter(x=>x.published)});
@@ -80,7 +83,13 @@ export default {async fetch(request,env){try{
   const other=await one(db,'SELECT role FROM accounts WHERE id=?',target);if(!other)fail('حساب پیدا نشد.',404);if(other.role==='owner'&&target!==u.id)fail('حساب مالک قابل تغییر نیست.',403);
   await db.batch([query(db,'DELETE FROM sessions WHERE user_id=?',target),auditStatement(db,u,'sessions.revoked',target,{})]);return json({ok:true},200,target===u.id?{'Set-Cookie':'kfy_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'}:{});
  }
+ if(path==='/api/library-requests'){
+ requireAdmin(u,'content.edit');
+ if(request.method==='GET')return json(await all(db,'SELECT * FROM library_requests ORDER BY created_at DESC LIMIT 200'));
+ if(request.method==='POST'){if(!['pending','approved','rejected'].includes(body.status))fail('وضعیت نامعتبر است.');const before=await one(db,'SELECT * FROM library_requests WHERE id=?',body.id);if(!before)fail('درخواست پیدا نشد.',404);await db.batch([query(db,'UPDATE library_requests SET status=?,admin_note=? WHERE id=?',body.status,clean(body.note,2000),body.id),auditStatement(db,u,'library.request_reviewed',body.id,{before,status:body.status})]);return json({ok:true});}
+ }
  if(path==='/api/accounts'){
+
   requireAdmin(u,'accounts.view');
   if(request.method==='GET')return json(await all(db,'SELECT a.id,a.name,a.email,a.phone,a.role,a.permissions,a.active,a.cafe,a.subscription_end,a.last_login,(SELECT count(*) FROM sessions s WHERE s.user_id=a.id AND s.expires_at>?) AS sessions FROM accounts a ORDER BY a.created_at DESC',now()));
   if(request.method==='POST'){
@@ -120,7 +129,7 @@ export default {async fetch(request,env){try{
  if(path==='/api/settings'){
   requireAdmin(u,'settings.edit');if(request.method==='GET'){const row=await one(db,"SELECT value FROM settings WHERE id='site'");return json(row?JSON.parse(row.value):{});}
   if(request.method==='POST'){
-   const value={title:clean(body.title,100),tagline:clean(body.tagline,300),contact:clean(body.contact,300),logo:clean(body.logo,1400000)};
+   const value={title:clean(body.title,100),tagline:clean(body.tagline,300),contact:clean(body.contact,300),heroTitle:clean(body.heroTitle,200),heroSubtitle:clean(body.heroSubtitle,1000),logo:clean(body.logo,1400000)};
    if(value.logo&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value.logo))fail('لوگو باید تصویر PNG، JPG یا WebP باشد.');
    const before=await one(db,"SELECT value FROM settings WHERE id='site'");
    await db.batch([query(db,"INSERT INTO settings(id,value) VALUES('site',?) ON CONFLICT(id) DO UPDATE SET value=excluded.value",JSON.stringify(value)),auditStatement(db,u,'settings.updated','site',{before:before?{...JSON.parse(before.value),logo:'[image]'}:null,after:{...value,logo:value.logo?'[image]':''}})]);return json({ok:true});

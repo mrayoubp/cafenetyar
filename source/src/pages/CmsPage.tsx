@@ -1,3 +1,4 @@
+import { MonthlyPlanCard } from "@/components/MonthlyPlanCard";
 import { PublicShell } from "@/components/layout/PublicShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,11 +9,13 @@ import { Link, useParams } from "react-router";
 
 export default function CmsPage() {
   const { slug = "" } = useParams();
-  const page = useQuery(api.siteCms.publicPageBySlug, { slug });
+  const page = useQuery(api.siteCms.publicPageBySlug, slug === "plans" ? "skip" : { slug });
 
   return (
     <PublicShell>
-      {page === undefined ? (
+      {slug === "plans" ? (
+        <section className="space-y-6"><h1 className="text-center text-2xl font-extrabold">خرید اشتراک کافی‌نت‌یار</h1><MonthlyPlanCard /></section>
+      ) : page === undefined ? (
         <div className="clay flex justify-center rounded-[30px] p-12">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>

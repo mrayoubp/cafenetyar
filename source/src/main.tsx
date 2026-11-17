@@ -155,6 +155,11 @@ function RouteSyncer() {
 }
 
 
+function ManagementEntry() {
+  useEffect(() => { window.location.replace('/manage'); }, []);
+  return <RouteLoading />;
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
@@ -319,139 +324,9 @@ createRoot(document.getElementById("root")!).render(
                     </RequireAuth>
                   }
                 />
-                <Route
-                  element={
-                    <RequireAuth>
-                      <AdminMfaGate />
-                    </RequireAuth>
-                  }
-                >
-                  <Route
-                    path="/super-admin"
-                    element={
-                      <RequirePlatformOwner>
-                        <SuperAdmin />
-                      </RequirePlatformOwner>
-                    }
-                  />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route
-                    path="/admin/news"
-                    element={
-                      <RequireAdmin
-                        permission={ADMIN_PERMISSIONS.CONTENT_MANAGE}
-                      >
-                        <AdminNews />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/sites"
-                    element={
-                      <RequireAdmin
-                        permission={ADMIN_PERMISSIONS.CONTENT_MANAGE}
-                      >
-                        <AdminSites />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/agent"
-                    element={
-                      <RequireAdmin permission={ADMIN_PERMISSIONS.AI_MANAGE}>
-                        <AdminAgent />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/billing"
-                    element={
-                      <RequireAdmin
-                        permission={ADMIN_PERMISSIONS.FINANCE_MANAGE}
-                      >
-                        <AdminBilling />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/cafes"
-                    element={
-                      <RequireAdmin permission={ADMIN_PERMISSIONS.CAFES_VIEW}>
-                        <AdminCafes />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/users"
-                    element={
-                      <RequireAdmin permission={ADMIN_PERMISSIONS.USERS_VIEW}>
-                        <AdminUsers />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/roles"
-                    element={
-                      <RequireAdmin permission={ADMIN_PERMISSIONS.ROLES_MANAGE}>
-                        <AdminRoles />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/support"
-                    element={
-                      <RequireAdmin permission={ADMIN_PERMISSIONS.SUPPORT_VIEW}>
-                        <AdminSupport />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/notifications"
-                    element={
-                      <RequireAdmin
-                        permission={ADMIN_PERMISSIONS.NOTIFICATIONS_MANAGE}
-                      >
-                        <AdminNotifications />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/audit"
-                    element={
-                      <RequireAdmin permission={ADMIN_PERMISSIONS.AUDIT_VIEW}>
-                        <AdminAudit />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/health"
-                    element={
-                      <RequireAdmin
-                        permission={ADMIN_PERMISSIONS.SETTINGS_MANAGE}
-                      >
-                        <AdminHealth />
-                      </RequireAdmin>
-                    }
-                  />
-                  <Route
-                    path="/admin/site"
-                    element={
-                      <RequirePlatformOwner>
-                        <AdminCms />
-                      </RequirePlatformOwner>
-                    }
-                  />
-                  <Route
-                    path="/admin/settings"
-                    element={
-                      <RequireAdmin
-                        permission={ADMIN_PERMISSIONS.SETTINGS_MANAGE}
-                      >
-                        <AdminSettings />
-                      </RequireAdmin>
-                    }
-                  />
-                </Route>
+                <Route path="/admin/*" element={<ManagementEntry />} />
+                <Route path="/super-admin" element={<ManagementEntry />} />
+                <Route path="/manage/*" element={<ManagementEntry />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

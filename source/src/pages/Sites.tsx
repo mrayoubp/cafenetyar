@@ -23,7 +23,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { errorMessage } from "@/lib/auth";
 import { faDateLong, faNumber, faRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/hooks/use-managed-content";
 import {
   ArrowDown,
   ArrowUp,

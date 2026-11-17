@@ -21,7 +21,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { faNumber, faRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/hooks/use-managed-content";
 import {
   ArrowLeft,
   Bookmark,

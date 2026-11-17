@@ -1,3 +1,4 @@
+import { useManagedSettings } from "@/hooks/use-managed-content";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
@@ -9,7 +10,9 @@ export function LogoMark({
   className?: string;
   size?: "sm" | "md" | "lg";
 }) {
-  const profile = useQuery(api.platformAdmin.publicProfile, {});
+  const originalProfile = useQuery(api.platformAdmin.publicProfile, {});
+  const managed = useManagedSettings();
+  const profile = { platformName: managed.title || originalProfile?.platformName || "کافی‌نت‌یار", tagline: managed.tagline || originalProfile?.tagline, logoUrl: managed.logo || originalProfile?.logoUrl };
   const dimensions =
     size === "sm"
       ? "size-9 rounded-[12px]"
@@ -61,7 +64,9 @@ export function Logo({
   showTagline?: boolean;
   className?: string;
 }) {
-  const profile = useQuery(api.platformAdmin.publicProfile, {});
+  const originalProfile = useQuery(api.platformAdmin.publicProfile, {});
+  const managed = useManagedSettings();
+  const profile = { platformName: managed.title || originalProfile?.platformName || "کافی‌نت‌یار", tagline: managed.tagline || originalProfile?.tagline, logoUrl: managed.logo || originalProfile?.logoUrl };
   return (
     <span className={cn("flex items-center gap-3", className)}>
       <LogoMark size={size} />

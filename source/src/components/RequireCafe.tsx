@@ -225,7 +225,7 @@ export function RequireCafe({
           asChild
           className="clay-primary h-11 w-full rounded-xl border-0 text-[12.5px] font-bold hover:brightness-105"
         >
-          <Link to="/dashboard/subscription">مشاهده پلن‌ها و ارتقا</Link>
+          <Link to="/dashboard/subscription">خرید یا تمدید اشتراک</Link>
         </Button>
         <Button
           asChild

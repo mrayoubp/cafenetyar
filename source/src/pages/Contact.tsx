@@ -1,3 +1,4 @@
+import { useManagedSettings } from "@/hooks/use-managed-content";
 import { PublicShell } from "@/components/layout/PublicShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 import { Link } from "react-router";
 
 export default function Contact() {
+  const managed = useManagedSettings();
   const profile = useQuery(api.platformAdmin.publicProfile, {});
   const cmsPage = useQuery(api.siteCms.publicPageBySlug, { slug: "contact" });
   const hasConfiguredContact =
@@ -59,6 +61,8 @@ export default function Contact() {
             </p>
           </div>
         </section>
+
+        {managed.contact && <section className="clay whitespace-pre-line rounded-[28px] p-5 text-sm leading-8">{managed.contact}</section>}
 
         {cmsPage?.body && (
           <section className="clay rounded-[28px] p-5 text-[11px] leading-7 text-muted-foreground sm:p-6">

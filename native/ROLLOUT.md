@@ -1,17 +1,25 @@
-# Native Sites backend
+# Original application with connected management
 
-The native entrypoint is native/server.mjs, bundled into dist/server/index.js. Original Convex source and static artifacts are retained for recovery; they are not the native runtime.
+The published entrypoint is `native/composed-server.mjs`, bundled into `dist/server/index.js`. It serves the ORIGINAL React/Vite application at `/` and its existing dashboard routes. `/manage` serves the management panel; `/admin` and `/super-admin` redirect there. Never deploy `native/server.mjs` alone: that would replace the original site with the standalone UI again.
 
-Uses Sites identity headers, an owner email bootstrap configured only in runtime, application session cookies, D1 persistence, owner TOTP, and server-side permissions. Phone is contact data, not verified authentication. Owner account bootstrap requires both a dispatch-authenticated identity and exact configured owner email; identity ID becomes the durable key.
+The original site layout and accounting, employees, agent, rates and account screens remain in `source/`. Those modules retain the previous Convex connection. Existing Convex accounts, subscriptions, payments and tickets have NOT been migrated or made editable by the new panel. The management overview states this boundary.
 
-Implemented: owner/admin/customer accounts, per-admin grants, account blocking, session revocation, last login, immutable API audit with before/after snapshots, published/draft text content, news/services/plan descriptions, logo upload and site settings, personal income/expense records, ticket submission/replies, subscription-end enforcement for transaction writes.
+The new panel manages site branding, uploaded logo, landing heading, contact details, articles and website directory entries. The original News, NewsDetail and Sites components use `/api/bridge` for compatible data. Favorites, read markers, suggestions and broken-link reports persist in D1 under the verified Sites identity. The review queue is protected by content permissions. Approving a suggestion records review; publishing a suggested website is a separate CMS action.
 
-Not connected: SMS delivery/verification, payment gateway, previous Convex data, AI agent. The previous full application contains additional modules not yet ported into the native UI. Site remains owner-private; inviting records does not grant Sites hosting access. No public audience change is authorized.
+Published content merges `native/library.json` (42 websites and six articles) with D1 overrides. Hiding a bundled item persists an unpublished override. No automatic news refresh or live link availability is claimed. New preferences and request tables use additive migration 0002.
 
-Checks: node --test native/server.test.mjs. Tests use SQLite with the same migration and a D1 adapter; they are not live Cloudflare acceptance tests. Browser QA unavailable in managed runtime.
+Administration uses Sites identity headers, exact configured owner email bootstrap, application session cookies, owner TOTP, permissions, account blocking, session revocation and audit. New panel accounts are separate from original Convex accounts. Runtime configuration: `OWNER_EMAIL`, `OWNER_PHONE` (contact only). SMS is not connected. Site remains owner-private; creating account records does not change hosting access.
 
-Runtime: OWNER_EMAIL, OWNER_PHONE (contact only). Deploy migrations before Worker activation; never mutate schema in request handlers.
+The only new purchase offer is a one-month subscription for 500,000 toman. A shared `MonthlyPlanCard` appears on the landing page, subscription screen and `/p/plans`. It opens `https://t.me/Cafenetyarr` with a purchase/renewal draft. The customer sends the message in Telegram; clicking does not send it or activate a subscription. Existing subscription/payment history and old payment callbacks are preserved, but new online orders and annual/multi-tier purchase controls are removed. Activation of original Convex subscriptions still requires access to that backend.
 
-Public-site update (2026-11-17): landing page now restores the original app's split hero, feature sections and light/dark appearance; public directory /sites and newsroom /news work without the app session (Sites hosting remains private). Includes 42 curated website links in 10 categories and six independently written short articles/guides, including a sourced CBI news summary. Sources and dates are visible. Link checking received 14 HTTP successes; 25 were restricted and three could not be confirmed. No live uptime or automated news refresh claim is made.
+Build from the repository root:
 
-Curated entries are bundled in native/library.json. D1 content overrides them by ID, so admin edits survive deployments; hiding/deleting a curated entry writes an unpublished override rather than resurrecting the default. Migration 0001 adds content metadata. Browser-local favorites and theme are explicitly device preferences. No browser QA tools are available; API integration, migration, JavaScript syntax, and search normalization checks are used.
+```sh
+cd source
+VITE_CONVEX_URL=https://striped-cobra-115.convex.cloud VITE_MANAGED_ACCOUNTS=false VITE_SITE_ADMIN=true npm run build
+cd ..
+node scripts/build-original-with-admin.mjs
+node --test native/server.test.mjs native/composition.test.mjs
+```
+
+The build embeds only `source/dist` assets in the composed Worker and copies migrations. The composition checks ensure the root and original dashboard routes serve the exact original Vite HTML, assets are intact, and management stays on its own route. API tests use SQLite and a D1 adapter. Original application tests run with `npm test` inside `source/`. Browser QA is unavailable in this managed runtime; no live browser validation is claimed. Deploy migrations before activation; never mutate schema from request handlers.
