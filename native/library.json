@@ -1,0 +1,827 @@
+[
+  {
+    "id": "site-be25022fb72f",
+    "kind": "site",
+    "title": "پنجره ملی خدمات دولت هوشمند",
+    "body": "دسترسی به خدمات دستگاه‌های دولتی با ورود یکپارچه.",
+    "url": "https://my.gov.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "دولت و هویت",
+      "sourceTitle": "پنجره ملی خدمات دولت هوشمند",
+      "sourceUrl": "https://my.gov.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-131fcff63bfb",
+    "kind": "site",
+    "title": "سازمان ثبت احوال",
+    "body": "اطلاع‌رسانی و خدمات هویتی سازمان ثبت احوال.",
+    "url": "https://www.sabteahval.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "دولت و هویت",
+      "sourceTitle": "سازمان ثبت احوال",
+      "sourceUrl": "https://www.sabteahval.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-11f8ca0318e1",
+    "kind": "site",
+    "title": "درگاه خدمات ثبت احوال",
+    "body": "دسترسی به خدمات الکترونیکی ثبت احوال.",
+    "url": "https://www.ncr.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "دولت و هویت",
+      "sourceTitle": "درگاه خدمات ثبت احوال",
+      "sourceUrl": "https://www.ncr.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-067c8bb791b0",
+    "kind": "site",
+    "title": "درگاه ملی خدمات مالیاتی",
+    "body": "پرونده مالیاتی و خدمات الکترونیکی مؤدیان.",
+    "url": "https://my.tax.gov.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "مالیات و مجوز",
+      "sourceTitle": "درگاه ملی خدمات مالیاتی",
+      "sourceUrl": "https://my.tax.gov.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-ac0fc22a8d8d",
+    "kind": "site",
+    "title": "سازمان امور مالیاتی",
+    "body": "اطلاعیه‌ها، مقررات و مسیر ورود به خدمات مالیاتی.",
+    "url": "https://www.tax.gov.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "مالیات و مجوز",
+      "sourceTitle": "سازمان امور مالیاتی",
+      "sourceUrl": "https://www.tax.gov.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-ffee4d41a78e",
+    "kind": "site",
+    "title": "درگاه ملی مجوزها",
+    "body": "جست‌وجوی شرایط و مسیر درخواست مجوز کسب‌وکار.",
+    "url": "https://mojavez.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "مالیات و مجوز",
+      "sourceTitle": "درگاه ملی مجوزها",
+      "sourceUrl": "https://mojavez.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "unverified"
+    }
+  },
+  {
+    "id": "site-6f4799d11149",
+    "kind": "site",
+    "title": "اینماد",
+    "body": "خدمات نماد اعتماد الکترونیکی کسب‌وکارهای اینترنتی.",
+    "url": "https://enamad.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "مالیات و مجوز",
+      "sourceTitle": "اینماد",
+      "sourceUrl": "https://enamad.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-9b17338a886e",
+    "kind": "site",
+    "title": "تأمین اجتماعی",
+    "body": "پرتال سازمان، اطلاعیه‌ها و فهرست خدمات بیمه‌ای.",
+    "url": "https://www.tamin.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بیمه و رفاه",
+      "sourceTitle": "تأمین اجتماعی",
+      "sourceUrl": "https://www.tamin.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 403
+    }
+  },
+  {
+    "id": "site-4b35196a302d",
+    "kind": "site",
+    "title": "خدمات غیرحضوری تأمین اجتماعی",
+    "body": "سوابق بیمه، خدمات بیمه‌شدگان و مستمری‌بگیران.",
+    "url": "https://eservices.tamin.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بیمه و رفاه",
+      "sourceTitle": "خدمات غیرحضوری تأمین اجتماعی",
+      "sourceUrl": "https://eservices.tamin.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 403
+    }
+  },
+  {
+    "id": "site-28fbe88d6dd2",
+    "kind": "site",
+    "title": "ارسال لیست بیمه",
+    "body": "دسترسی کارفرمایان به خدمات و ارسال لیست بیمه.",
+    "url": "https://es.tamin.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بیمه و رفاه",
+      "sourceTitle": "ارسال لیست بیمه",
+      "sourceUrl": "https://es.tamin.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 403
+    }
+  },
+  {
+    "id": "site-58fc093a1641",
+    "kind": "site",
+    "title": "نوبت‌دهی تأمین اجتماعی",
+    "body": "دریافت نوبت از مراکز درمانی تحت پوشش سامانه.",
+    "url": "https://nobat.tamin.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بیمه و رفاه",
+      "sourceTitle": "نوبت‌دهی تأمین اجتماعی",
+      "sourceUrl": "https://nobat.tamin.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 403
+    }
+  },
+  {
+    "id": "site-634e3d8c3caa",
+    "kind": "site",
+    "title": "سامانه حمایت",
+    "body": "پیگیری اطلاعات و درخواست‌های حمایت معیشتی خانوار.",
+    "url": "https://hemayat.mcls.gov.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بیمه و رفاه",
+      "sourceTitle": "سامانه حمایت",
+      "sourceUrl": "https://hemayat.mcls.gov.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-364b49edc9e1",
+    "kind": "site",
+    "title": "سها کمیته امداد",
+    "body": "ثبت و پیگیری درخواست‌های حمایتی کمیته امداد.",
+    "url": "https://soha.emdad.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بیمه و رفاه",
+      "sourceTitle": "سها کمیته امداد",
+      "sourceUrl": "https://soha.emdad.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 403
+    }
+  },
+  {
+    "id": "site-cd7c47883b79",
+    "kind": "site",
+    "title": "سازمان سنجش",
+    "body": "اطلاعیه‌ها، دفترچه‌ها و نتایج آزمون‌ها.",
+    "url": "https://www.sanjesh.org/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "آموزش و آزمون",
+      "sourceTitle": "سازمان سنجش",
+      "sourceUrl": "https://www.sanjesh.org/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 403
+    }
+  },
+  {
+    "id": "site-ad52ba20a4f8",
+    "kind": "site",
+    "title": "مای سنجش",
+    "body": "حساب داوطلب و خدمات سامانه جامع آزمون‌ها.",
+    "url": "https://my.sanjesh.org/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "آموزش و آزمون",
+      "sourceTitle": "مای سنجش",
+      "sourceUrl": "https://my.sanjesh.org/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 403
+    }
+  },
+  {
+    "id": "site-3014477a4359",
+    "kind": "site",
+    "title": "مای مدیو",
+    "body": "پنجره خدمات الکترونیکی آموزش و پرورش.",
+    "url": "https://my.medu.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "آموزش و آزمون",
+      "sourceTitle": "مای مدیو",
+      "sourceUrl": "https://my.medu.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-83533de6a991",
+    "kind": "site",
+    "title": "تأییدیه تحصیلی",
+    "body": "ثبت و پیگیری درخواست تأییدیه مدارک تحصیلی مدارس.",
+    "url": "https://emt.medu.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "آموزش و آزمون",
+      "sourceTitle": "تأییدیه تحصیلی",
+      "sourceUrl": "https://emt.medu.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-60d56856b1cb",
+    "kind": "site",
+    "title": "عدل ایران",
+    "body": "درگاه خدمات الکترونیک قضایی و مسیر سامانه‌های مرتبط.",
+    "url": "https://adliran.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "قضایی و ثبت",
+      "sourceTitle": "عدل ایران",
+      "sourceUrl": "https://adliran.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "unverified"
+    }
+  },
+  {
+    "id": "site-b80a95a2ff19",
+    "kind": "site",
+    "title": "ثبت من",
+    "body": "خدمات الکترونیکی سازمان ثبت اسناد و املاک.",
+    "url": "https://my.ssaa.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "قضایی و ثبت",
+      "sourceTitle": "ثبت من",
+      "sourceUrl": "https://my.ssaa.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-7951ff5a3f3d",
+    "kind": "site",
+    "title": "شناسه ملی اشخاص حقوقی",
+    "body": "جست‌وجوی شناسه ملی و اطلاعات اشخاص حقوقی.",
+    "url": "https://ilenc.ssaa.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "قضایی و ثبت",
+      "sourceTitle": "شناسه ملی اشخاص حقوقی",
+      "sourceUrl": "https://ilenc.ssaa.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-d90c54f6dd34",
+    "kind": "site",
+    "title": "ثبت شرکت‌ها",
+    "body": "خدمات ثبت شرکت‌ها و تغییرات اشخاص حقوقی.",
+    "url": "https://irsherkat.ssaa.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "قضایی و ثبت",
+      "sourceTitle": "ثبت شرکت‌ها",
+      "sourceUrl": "https://irsherkat.ssaa.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-02311105b0e9",
+    "kind": "site",
+    "title": "سخا فراجا",
+    "body": "پنجره خدمات الکترونیکی انتظامی.",
+    "url": "https://sakha.epolice.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "خودرو و انتظامی",
+      "sourceTitle": "سخا فراجا",
+      "sourceUrl": "https://sakha.epolice.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-3b822b2fbf62",
+    "kind": "site",
+    "title": "نوبت‌دهی تعویض پلاک",
+    "body": "رزرو نوبت مراکز شماره‌گذاری و تعویض پلاک.",
+    "url": "https://nobatdehi.epolice.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "خودرو و انتظامی",
+      "sourceTitle": "نوبت‌دهی تعویض پلاک",
+      "sourceUrl": "https://nobatdehi.epolice.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-85d9f810dc81",
+    "kind": "site",
+    "title": "مالیات نقل‌وانتقال خودرو",
+    "body": "خدمات مالیاتی مرتبط با نقل‌وانتقال خودرو.",
+    "url": "https://cartransfer.tax.gov.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "خودرو و انتظامی",
+      "sourceTitle": "مالیات نقل‌وانتقال خودرو",
+      "sourceUrl": "https://cartransfer.tax.gov.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-0556379ec4a0",
+    "kind": "site",
+    "title": "املاک و اسکان",
+    "body": "ثبت و بررسی اطلاعات املاک و محل سکونت.",
+    "url": "https://amlak.mrud.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "مسکن و املاک",
+      "sourceTitle": "املاک و اسکان",
+      "sourceUrl": "https://amlak.mrud.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-00de6d41c181",
+    "kind": "site",
+    "title": "شرکت ملی پست",
+    "body": "پرتال رسمی پست و دسترسی به خدمات پستی.",
+    "url": "https://www.post.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "پست و ارتباطات",
+      "sourceTitle": "شرکت ملی پست",
+      "sourceUrl": "https://www.post.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-825a404d43b2",
+    "kind": "site",
+    "title": "رهگیری مرسولات پستی",
+    "body": "بررسی وضعیت مرسوله با شناسه رهگیری.",
+    "url": "https://tracking.post.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "پست و ارتباطات",
+      "sourceTitle": "رهگیری مرسولات پستی",
+      "sourceUrl": "https://tracking.post.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-0a6cb5a8a607",
+    "kind": "site",
+    "title": "کد پستی و GNAF",
+    "body": "خدمات نشانی و گواهی کد پستی.",
+    "url": "https://gnaf.post.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "پست و ارتباطات",
+      "sourceTitle": "کد پستی و GNAF",
+      "sourceUrl": "https://gnaf.post.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-67a56530720a",
+    "kind": "site",
+    "title": "مخابرات من",
+    "body": "خدمات مشترکان تلفن ثابت و اینترنت مخابرات.",
+    "url": "https://my.tci.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "پست و ارتباطات",
+      "sourceTitle": "مخابرات من",
+      "sourceUrl": "https://my.tci.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-357500190152",
+    "kind": "site",
+    "title": "بانک مرکزی",
+    "body": "اطلاعیه‌ها و مسیر سامانه‌های رسمی بانکی.",
+    "url": "https://www.cbi.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بانک و بازار سرمایه",
+      "sourceTitle": "بانک مرکزی",
+      "sourceUrl": "https://www.cbi.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-edcc40842f6d",
+    "kind": "site",
+    "title": "استعلام چک بانک مرکزی",
+    "body": "ورود به خدمات استعلام چک از مرجع بانک مرکزی.",
+    "url": "https://www.cbi.ir/simplelist/19689.aspx",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بانک و بازار سرمایه",
+      "sourceTitle": "استعلام چک بانک مرکزی",
+      "sourceUrl": "https://www.cbi.ir/simplelist/19689.aspx",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-988b44297b48",
+    "kind": "site",
+    "title": "تسهیلات قرض‌الحسنه",
+    "body": "درگاه ثبت‌نام و پیگیری تسهیلات معرفی‌شده بانک مرکزی.",
+    "url": "https://ve.cbi.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بانک و بازار سرمایه",
+      "sourceTitle": "تسهیلات قرض‌الحسنه",
+      "sourceUrl": "https://ve.cbi.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 503
+    }
+  },
+  {
+    "id": "site-a93fdfbfee26",
+    "kind": "site",
+    "title": "سجام",
+    "body": "ثبت و مدیریت اطلاعات مشتریان بازار سرمایه.",
+    "url": "https://www.sejam.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بانک و بازار سرمایه",
+      "sourceTitle": "سجام",
+      "sourceUrl": "https://www.sejam.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "restricted",
+      "httpStatus": 403
+    }
+  },
+  {
+    "id": "site-40673ec6b7d7",
+    "kind": "site",
+    "title": "درگاه ذی‌نفعان بازار سرمایه",
+    "body": "خدمات الکترونیکی شرکت سپرده‌گذاری مرکزی.",
+    "url": "https://ddn.csdiran.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بانک و بازار سرمایه",
+      "sourceTitle": "درگاه ذی‌نفعان بازار سرمایه",
+      "sourceUrl": "https://ddn.csdiran.ir/",
+      "checkedAt": "2026-11-17",
+      "access": "unverified"
+    }
+  },
+  {
+    "id": "site-1ef49f0afca5",
+    "kind": "site",
+    "title": "Google Translate",
+    "body": "ترجمه متن و بررسی معادل واژه‌ها.",
+    "url": "https://translate.google.com/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "ابزارهای کاری",
+      "sourceTitle": "Google Translate",
+      "sourceUrl": "https://translate.google.com/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-045262fdb9df",
+    "kind": "site",
+    "title": "Google Docs",
+    "body": "ایجاد و ویرایش سند و متن به‌صورت آنلاین.",
+    "url": "https://docs.google.com/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "ابزارهای کاری",
+      "sourceTitle": "Google Docs",
+      "sourceUrl": "https://docs.google.com/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-4f1bcebf4af3",
+    "kind": "site",
+    "title": "Microsoft 365",
+    "body": "دسترسی به ابزارهای آنلاین اسناد و صفحه‌گسترده.",
+    "url": "https://www.microsoft365.com/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "ابزارهای کاری",
+      "sourceTitle": "Microsoft 365",
+      "sourceUrl": "https://www.microsoft365.com/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-901c46f49a15",
+    "kind": "site",
+    "title": "Adobe Acrobat Online",
+    "body": "ابزارهای آنلاین PDF؛ مدارک حساس را فقط با رضایت صاحب آن بارگذاری کنید.",
+    "url": "https://www.adobe.com/acrobat/online.html",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "ابزارهای کاری",
+      "sourceTitle": "Adobe Acrobat Online",
+      "sourceUrl": "https://www.adobe.com/acrobat/online.html",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-a8297c1dc99f",
+    "kind": "site",
+    "title": "iLovePDF",
+    "body": "ابزارهای تبدیل و مدیریت PDF؛ بارگذاری فایل به سرویس خارجی انجام می‌شود.",
+    "url": "https://www.ilovepdf.com/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "ابزارهای کاری",
+      "sourceTitle": "iLovePDF",
+      "sourceUrl": "https://www.ilovepdf.com/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-873756fbe97a",
+    "kind": "site",
+    "title": "Photopea",
+    "body": "ویرایش تصویر در مرورگر و آماده‌سازی فایل گرافیکی.",
+    "url": "https://www.photopea.com/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "ابزارهای کاری",
+      "sourceTitle": "Photopea",
+      "sourceUrl": "https://www.photopea.com/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-59e95f4c62f0",
+    "kind": "site",
+    "title": "Squoosh",
+    "body": "فشرده‌سازی تصویر در مرورگر.",
+    "url": "https://squoosh.app/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "ابزارهای کاری",
+      "sourceTitle": "Squoosh",
+      "sourceUrl": "https://squoosh.app/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "site-ee76fbba7792",
+    "kind": "site",
+    "title": "Canva",
+    "body": "طراحی پوستر، کارت و محتوای گرافیکی.",
+    "url": "https://www.canva.com/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "ابزارهای کاری",
+      "sourceTitle": "Canva",
+      "sourceUrl": "https://www.canva.com/",
+      "checkedAt": "2026-11-17",
+      "access": "responded",
+      "httpStatus": 200
+    }
+  },
+  {
+    "id": "article-digital-cheques",
+    "kind": "article",
+    "title": "گزارش تازه بانک مرکزی از رشد چک الکترونیکی",
+    "body": "بانک مرکزی در گزارش ۲۵ آبان ۱۴۰۵ اعلام کرده است که تعداد چک‌های الکترونیکی صادرشده در هفت ماه نخست سال از ۴ میلیون و ۸۲۰ هزار فقره عبور کرده است. این رقم در مقایسه با مدت مشابه سال گذشته حدود ۲٫۸ برابر شده است.\n\nبرای کافی‌نت‌دار چه کاربردی دارد؟\nهنگام راهنمایی مشتری، میان «صدور چک الکترونیکی»، «ثبت اطلاعات چک» و «استعلام چک» تفاوت بگذارید. صرف دیدن تصویر یا پیام تأیید، جای بررسی از مسیر رسمی بانک را نمی‌گیرد. این خبر به معنی تغییر خودکار شرایط دریافت دسته‌چک نیست.\n\nگزارش کامل و جزئیات آماری در منبع بانک مرکزی قرار دارد.",
+    "url": "https://www.cbi.ir/showitem/37276.aspx",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بانک و مالی",
+      "summary": "در هفت ماه نخست ۱۴۰۵ بیش از ۴٫۸۲ میلیون چک الکترونیکی صادر شده است.",
+      "sourceTitle": "بانک مرکزی",
+      "sourceUrl": "https://www.cbi.ir/showitem/37276.aspx",
+      "sourceDate": "2026-11-16",
+      "preparedAt": "2026-11-17",
+      "type": "news",
+      "readingMinutes": 1
+    }
+  },
+  {
+    "id": "article-insurance",
+    "kind": "article",
+    "title": "برای خدمات بیمه‌ای از کدام مسیر وارد شویم؟",
+    "body": "پرتال تأمین اجتماعی، خدمات بیمه‌شدگان، کارفرمایان و مستمری‌بگیران را جدا معرفی می‌کند. برای شروع، نام خدمت را در بخش خدمات پرکاربرد سایت رسمی پیدا کنید.\n\nسه مسیر پرمراجعه\n• خدمات غیرحضوری: برای سوابق بیمه و خدمات حساب بیمه‌شده.\n• خدمات کارفرمایان: برای ارسال لیست و پیگیری امور کارگاه.\n• نوبت‌دهی: برای مراکز درمانی حاضر در سامانه نوبت.\n\nپیش از انجام کار، عنوان خدمت و هویت متقاضی را تطبیق دهید. رسید نهایی را تحویل مشتری دهید و کلمهٔ عبور او را روی رایانهٔ مشترک ذخیره نکنید. جزئیات هر خدمت و شرایط استفاده را از همان صفحهٔ رسمی بخوانید.",
+    "url": "https://www.tamin.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "بیمه و رفاه",
+      "summary": "تفاوت مسیر بیمه‌شدگان، کارفرمایان و نوبت‌دهی را بشناسید.",
+      "sourceTitle": "سازمان تأمین اجتماعی",
+      "sourceUrl": "https://www.tamin.ir/",
+      "sourceDate": null,
+      "preparedAt": "2026-11-17",
+      "type": "guide",
+      "readingMinutes": 1
+    }
+  },
+  {
+    "id": "article-incognito",
+    "kind": "article",
+    "title": "حالت ناشناس، فایل مشتری را پاک نمی‌کند",
+    "body": "طبق راهنمای Chrome، حالت ناشناس پس از بسته‌شدن همهٔ پنجره‌های ناشناس، سابقه و داده‌های موقت آن جلسه را نگه نمی‌دارد؛ اما فایل‌های دانلودشده و نشانک‌ها باقی می‌مانند. این حالت همچنین شما را از دید سایت یا مدیر شبکه نامرئی نمی‌کند.\n\nروال پیشنهادی پایان کار\n۱. از حساب مشتری در سامانه خارج شوید.\n۲. همهٔ پنجره‌های ناشناس را ببندید.\n۳. فایل‌های دانلودی یا اسکن‌شدهٔ مربوط به مشتری را بررسی کنید و پس از تحویل، مطابق رضایت او پاک کنید.\n۴. برای مشتری بعدی یک جلسهٔ تازه باز کنید.\n\nدر ویندوز می‌توانید با Ctrl + Shift + N پنجرهٔ ناشناس Chrome را باز کنید.",
+    "url": "https://support.google.com/chrome/answer/95464?hl=fa",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "امنیت و مرورگر",
+      "summary": "یک نکتهٔ مهم برای کار با رایانه‌های مشترک کافی‌نت.",
+      "sourceTitle": "راهنمای رسمی Google Chrome",
+      "sourceUrl": "https://support.google.com/chrome/answer/95464?hl=fa",
+      "sourceDate": null,
+      "preparedAt": "2026-11-17",
+      "type": "guide",
+      "readingMinutes": 1
+    }
+  },
+  {
+    "id": "article-history",
+    "kind": "article",
+    "title": "پاک‌کردن سابقه مرور با خروج از حساب فرق دارد",
+    "body": "راهنمای Chrome امکان مشاهده و حذف سابقه و انتخاب بازهٔ زمانی را توضیح می‌دهد. اگر همگام‌سازی سابقه با حساب Google فعال باشد، حذف سابقه ممکن است روی دستگاه‌های همگام‌شده هم اثر بگذارد.\n\nبرای کافی‌نت\nقبل از پاک‌کردن اطلاعات، مشخص کنید مرورگر متعلق به کدام حساب است. حذف سابقه را جایگزین خروج از حساب سامانه نکنید. فایل‌هایی که جداگانه ذخیره کرده‌اید نیز باید جدا بررسی شوند.\n\nاگر فقط یک مراجعه مشخص باید پاک شود، از انتخاب بی‌دلیل تمام اطلاعات حساب شخصی خود یا مشتری خودداری کنید. مراحل دقیق نسخهٔ مرورگر و دستگاه را در راهنمای رسمی بخوانید.",
+    "url": "https://support.google.com/chrome/answer/95589?hl=fa",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "امنیت و مرورگر",
+      "summary": "سابقه، داده‌های سایت و فایل‌های ذخیره‌شده یک چیز نیستند.",
+      "sourceTitle": "راهنمای رسمی Google Chrome",
+      "sourceUrl": "https://support.google.com/chrome/answer/95589?hl=fa",
+      "sourceDate": null,
+      "preparedAt": "2026-11-17",
+      "type": "guide",
+      "readingMinutes": 1
+    }
+  },
+  {
+    "id": "article-gov-entry",
+    "kind": "article",
+    "title": "شروع خدمات دولتی از یک نشانی مشخص",
+    "body": "پنجرهٔ ملی خدمات دولت هوشمند با نشانی my.gov.ir مسیر ورود یکپارچه به خدمات متصل دستگاه‌هاست. انتخاب یک خدمت ممکن است شما را به سایت اختصاصی همان دستگاه منتقل کند.\n\nچک‌لیست کوتاه کافی‌نت\n• نشانی را مستقیماً از بانک سامانه‌ها باز کنید.\n• نام خدمت و هویت متقاضی را قبل از تکمیل فرم کنترل کنید.\n• رمز یک‌بارمصرف را خود متقاضی وارد کند.\n• پس از ثبت نهایی، شمارهٔ پیگیری را تحویل بگیرید.\n\nاین راهنما خبر ثبت‌نام یا اعلام مهلت نیست. زمان‌بندی و مدارک هر درخواست را از اطلاعیهٔ همان دستگاه بررسی کنید.",
+    "url": "https://my.gov.ir/",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "خدمات دولتی",
+      "summary": "پیش از ورود اطلاعات، مقصد مرورگر را بررسی کنید.",
+      "sourceTitle": "معرفی پنجره ملی در کافی‌نتی؛ مسیر رسمی: my.gov.ir",
+      "sourceUrl": "https://cafeneti.com/samane/dolat-man/",
+      "sourceDate": null,
+      "preparedAt": "2026-11-17",
+      "type": "guide",
+      "readingMinutes": 1
+    }
+  },
+  {
+    "id": "article-post",
+    "kind": "article",
+    "title": "رهگیری مرسوله و دریافت کد پستی را اشتباه نگیریم",
+    "body": "برای پیگیری یک بسته، خدمت رهگیری مرسولات پستی کاربرد دارد. برای خدمات نشانی و گواهی کد پستی، باید به سامانهٔ GNAF مراجعه شود.\n\nقبل از شروع از مشتری بپرسید\nآیا بسته‌ای ارسال شده و شناسهٔ رهگیری دارد، یا برای یک نشانی به کد پستی نیاز است؟ پاسخ این سؤال مسیر درست را مشخص می‌کند.\n\nرسید و شناسه را دقیق و بدون تغییر وارد کنید. اگر اطلاعات ناقص است، از روی حدس فرم را تکمیل نکنید. نتیجهٔ صفحه را همراه با زمان مراجعه به مشتری تحویل دهید؛ وضعیت حمل مرسوله ممکن است بعداً تغییر کند.",
+    "url": "https://raahaat.ir/process/postal-tracking",
+    "published": 1,
+    "updated_at": 1794873600000,
+    "meta": {
+      "category": "پست و ارتباطات",
+      "summary": "دو درخواست رایج مشتریان، با دو مسیر متفاوت.",
+      "sourceTitle": "راهنمای مسیرهای پستی؛ مرجع خدمات: شرکت ملی پست",
+      "sourceUrl": "https://raahaat.ir/process/postal-tracking",
+      "sourceDate": null,
+      "preparedAt": "2026-11-17",
+      "type": "guide",
+      "readingMinutes": 1
+    }
+  }
+]

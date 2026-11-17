@@ -1,3 +1,4 @@
+import library from './library.json' with { type: 'json' };
 import { html } from './ui.mjs';
 const PERMISSIONS=['accounts.view','content.edit','support.manage','audit.view','settings.edit'];
 const enc=new TextEncoder();
@@ -7,6 +8,7 @@ const hash=async s=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-25
 const json=(data,status=200,headers={})=>Response.json(data,{status,headers:{'Cache-Control':'no-store',...headers}});
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
 const clean=(value,max=200)=>String(value??'').trim().slice(0,max);
+function validUrl(value){try{const u=new URL(value);return u.protocol==='https:'&&!!u.hostname&&u.hostname.includes('.')&&!u.username&&!u.password;}catch{return false;}}
 const query=(db,sql,...v)=>db.prepare(sql).bind(...v);
 const all=async(db,sql,...v)=>(await query(db,sql,...v).all()).results;
 const one=(db,sql,...v)=>query(db,sql,...v).first();
@@ -19,6 +21,8 @@ async function session(request,db){const ident=await identity(request);const tok
 function can(u,p){return u.role==='owner'||(u.role==='admin'&&u.permissions.includes(p));}
 function requireAdmin(u,p){if(!can(u,p))fail('اجازهٔ انجام این عملیات را ندارید.',403);if(u.role==='owner'&&(!u.mfa_at||u.mfa_at<now()-30*60*1000))fail('تأیید دومرحله‌ای مالک لازم است.',428);}
 function requireOwner(u){if(u.role!=='owner')fail('فقط مالک سایت می‌تواند این کار را انجام دهد.',403);requireAdmin(u,'owner');}
+export function mergeLibrary(rows){const entries=new Map(library.map(x=>[x.id,x]));for(const row of rows)entries.set(row.id,{...row,meta:typeof row.meta==='string'?JSON.parse(row.meta):row.meta||{}});return [...entries.values()].sort((a,b)=>b.updated_at-a.updated_at);}
+async function contentRows(db){return mergeLibrary(await all(db,'SELECT * FROM content ORDER BY updated_at DESC'));}
 export default {async fetch(request,env){try{
  const url=new URL(request.url),path=url.pathname,db=env.DB;
  if(!path.startsWith('/api/'))return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin'}});
@@ -31,7 +35,7 @@ export default {async fetch(request,env){try{
  let body={};if(request.method==='POST'){const raw=await request.text();if(raw.length>1500000)fail('حجم درخواست زیاد است.',413);try{body=JSON.parse(raw);}catch{fail('اطلاعات معتبر نیست.');}}
  if(path==='/api/public'&&request.method==='GET'){
   const settings=await one(db,"SELECT value FROM settings WHERE id='site'");
-  return json({settings:settings?JSON.parse(settings.value):{title:'کافی‌نت‌یار',tagline:'مدیریت ساده‌تر، وقت بیشتر برای مشتریان'},content:await all(db,'SELECT * FROM content WHERE published=1 ORDER BY updated_at DESC LIMIT 100')});
+  return json({settings:settings?JSON.parse(settings.value):{title:'کافی‌نت‌یار',tagline:'مدیریت ساده‌تر، وقت بیشتر برای مشتریان'},content:(await contentRows(db)).filter(x=>x.published)});
  }
  if(path==='/api/session'&&request.method==='POST'){
   const ident=await identity(request);let user=await one(db,'SELECT * FROM accounts WHERE identity_id=?',ident.id);
@@ -95,15 +99,22 @@ export default {async fetch(request,env){try{
   }
  }
  if(path==='/api/content'){
-  requireAdmin(u,'content.edit');if(request.method==='GET')return json(await all(db,'SELECT * FROM content ORDER BY updated_at DESC'));
+  requireAdmin(u,'content.edit');if(request.method==='GET')return json(await contentRows(db));
   if(request.method==='POST'){
-   const id=body.id||uuid(),before=body.id?await one(db,'SELECT * FROM content WHERE id=?',id):null;
+   const id=body.id||uuid(),before=body.id?(await one(db,'SELECT * FROM content WHERE id=?',id)||library.find(x=>x.id===id)):null;
    if(body.id&&!before)fail('محتوا پیدا نشد.',404);
-   if(body.remove){await db.batch([query(db,'DELETE FROM content WHERE id=?',id),auditStatement(db,u,'content.deleted',id,{before})]);return json({ok:true});}
-   const kind=body.kind,title=clean(body.title),text=clean(body.body,20000),link=clean(body.url,2000);if(!['news','service','page','plan'].includes(kind)||!title)fail('عنوان و نوع محتوا لازم است.');
-   if(link&&!/^https:\/\//i.test(link))fail('لینک باید با https:// شروع شود.');
-   const after={kind,title,body:text,url:link,published:!!body.published};
-   await db.batch([query(db,'INSERT INTO content(id,kind,title,body,url,published,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET kind=excluded.kind,title=excluded.title,body=excluded.body,url=excluded.url,published=excluded.published,updated_at=excluded.updated_at',id,kind,title,text,link,after.published?1:0,now()),auditStatement(db,u,'content.saved',id,{before,after})]);return json({ok:true});
+   if(body.remove){const statement=library.some(x=>x.id===id)?query(db,'INSERT INTO content(id,kind,title,body,url,published,updated_at,meta) VALUES(?,?,?,?,?,0,?,?) ON CONFLICT(id) DO UPDATE SET published=0,updated_at=excluded.updated_at',id,before.kind,before.title,before.body,before.url,now(),JSON.stringify(typeof before.meta==='string'?JSON.parse(before.meta):before.meta||{})):query(db,'DELETE FROM content WHERE id=?',id);await db.batch([statement,auditStatement(db,u,'content.deleted',id,{before})]);return json({ok:true});}
+   const kind=body.kind,title=clean(body.title),text=clean(body.body,20000),link=clean(body.url,2000);if(!['news','service','page','plan','site','article'].includes(kind)||!title)fail('عنوان و نوع محتوا لازم است.');
+   if(link&&!validUrl(link))fail('لینک باید با https:// شروع شود.');
+   const priorMeta=typeof before?.meta==='string'?JSON.parse(before.meta):before?.meta||{};
+   const meta={...priorMeta};for(const key of ['category','summary','sourceTitle','sourceUrl','sourceDate','type'])if(body.meta&&Object.hasOwn(body.meta,key))meta[key]=clean(body.meta[key],key==='summary'?500:2000);
+   if(meta.sourceUrl&&!validUrl(meta.sourceUrl))fail('نشانی منبع باید HTTPS باشد.');
+   if(meta.sourceDate&&!/^\d{4}-\d{2}-\d{2}$/.test(meta.sourceDate))fail('تاریخ منبع معتبر نیست.');
+   if(['article','news'].includes(kind))meta.preparedAt=new Date().toISOString().slice(0,10);
+   if(kind==='site'&&!link)fail('نشانی سامانه لازم است.');
+   if(before&&before.url!==link){meta.access='unverified';delete meta.httpStatus;delete meta.checkedAt;}
+   const after={kind,title,body:text,url:link,published:!!body.published,meta};
+   await db.batch([query(db,'INSERT INTO content(id,kind,title,body,url,published,updated_at,meta) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET kind=excluded.kind,title=excluded.title,body=excluded.body,url=excluded.url,published=excluded.published,updated_at=excluded.updated_at,meta=excluded.meta',id,kind,title,text,link,after.published?1:0,now(),JSON.stringify(meta)),auditStatement(db,u,'content.saved',id,{before,after})]);return json({ok:true});
   }
  }
  if(path==='/api/settings'){
@@ -123,7 +134,7 @@ export default {async fetch(request,env){try{
   if(u.role==='customer')fail('این بخش مدیریتی است.',403);requireAdmin(u,u.permissions[0]||'owner');
   const stats={};if(can(u,'accounts.view')){stats.accounts=(await one(db,'SELECT count(*) AS n FROM accounts')).n;stats.admins=(await one(db,"SELECT count(*) AS n FROM accounts WHERE role IN ('owner','admin')")).n;}
   if(can(u,'support.manage'))stats.tickets=(await one(db,"SELECT count(*) AS n FROM tickets WHERE status='open'")).n;
-  if(can(u,'content.edit'))stats.content=(await one(db,'SELECT count(*) AS n FROM content WHERE published=1')).n;
+  if(can(u,'content.edit'))stats.content=(await contentRows(db)).filter(x=>x.published).length;
   return json(stats);
  }
  if(path==='/api/transactions'){
