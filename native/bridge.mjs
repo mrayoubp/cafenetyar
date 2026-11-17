@@ -14,13 +14,15 @@ export async function bridge(request,db,content){
  const sites=content.filter(x=>x.kind==='site'),news=content.filter(x=>['article','news'].includes(x.kind));
  const card=x=>({id:x.id,title:x.title,summary:x.meta?.summary||x.body.slice(0,180),imageUrl:null,category:category(x.meta?.category||'عمومی'),sourceName:x.meta?.sourceTitle||'کافی‌نت‌یار',sourceUrl:x.meta?.sourceUrl||x.url||null,publishedAt:x.meta?.sourceDate?new Date(x.meta.sourceDate+'T12:00:00+03:30').getTime():x.updated_at,isUrgent:false,isPinned:false,isDemo:false,saved:prefs.saved.includes(x.id),read:prefs.read.includes(x.id)});
  if(request.method==='GET'){
-  if(name==='websites:catalog'){
+  if(name==='websites:catalog'||name==='websites:highlights'){
    const categories=[...new Set(sites.map(x=>x.meta?.category||'سایر'))].map(n=>({...category(n),description:null,count:sites.filter(x=>(x.meta?.category||'سایر')===n).length}));
    const items=sites.map((x,i)=>({id:x.id,name:x.title,description:x.body,url:x.url,logoUrl:null,sourceName:x.meta?.sourceTitle||x.title,sourceUrl:x.meta?.sourceUrl||x.url,verificationStatus:'needs_review',lastCheckedAt:x.meta?.checkedAt?new Date(x.meta.checkedAt).getTime():null,lastCheckStatus:'unchecked',visitCount:0,isFeatured:i<6,isActive:true,sortOrder:i,updatedAt:x.updated_at,createdAt:x.updated_at,isFavorite:prefs.favorites.includes(x.id),favoriteOrder:prefs.favorites.indexOf(x.id),lastVisitedAt:prefs.visited[x.id]||null,category:category(x.meta?.category||'سایر')}));
+   if(name==='websites:highlights')return json({items:items.slice(0,4),favoriteCount:items.filter(x=>x.isFavorite).length,total:items.length});
    const mySuggestions=identity?(await db.prepare("SELECT * FROM library_requests WHERE identity_id=? AND kind='suggestion' ORDER BY created_at DESC").bind(identity).all()).results.map(x=>({id:x.id,...JSON.parse(x.payload),status:x.status,adminNote:x.admin_note,createdAt:x.created_at})):[];
    return json({items,categories,mySuggestions,stats:{total:items.length,favorites:items.filter(x=>x.isFavorite).length,recent:items.filter(x=>x.lastVisitedAt).length,featured:items.filter(x=>x.isFeatured).length,needsReview:items.length},serverNow:Date.now()});
   }
   if(name==='news:get'){const x=news.find(x=>x.id===args.newsId);return json(x?{...card(x),body:x.body}:null);}
+  if(name==='news:highlights')return json({items:news.map(card).sort((a,b)=>b.publishedAt-a.publishedAt).slice(0,4),hasDemo:false});
   if(name==='news:feed'){
    let items=news.filter(x=>(!args.categoryId||category(x.meta?.category||'عمومی').id===args.categoryId)&&(!args.search||norm(x.title+' '+x.body).includes(norm(args.search)))&&(!args.savedOnly||prefs.saved.includes(x.id))&&(!args.unreadOnly||!prefs.read.includes(x.id))&&(!args.preferredOnly||prefs.categoryIds.includes(category(x.meta?.category||'عمومی').id))).map(card);items.sort((a,b)=>(a.publishedAt-b.publishedAt)*(args.sort==='oldest'?1:-1));
    const categories=[...new Set(news.map(x=>x.meta?.category||'عمومی'))].map(n=>({...category(n),newsCount:news.filter(x=>(x.meta?.category||'عمومی')===n).length}));

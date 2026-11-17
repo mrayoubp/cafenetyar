@@ -2,16 +2,7 @@ import schema from "../src/convex/schema";
 import { api, internal } from "../src/convex/_generated/api";
 import type { Id } from "../src/convex/_generated/dataModel";
 import { convexTest } from "convex-test";
-import { describe, expect, test, vi } from "vitest";
-
-// The Vly browser bundle touches `document` at import time in the edge test
-// runtime. The deterministic pricing test never calls the AI client, so a
-// minimal mock keeps the backend module loadable in this environment.
-vi.mock("@vly-ai/integrations", () => ({
-  createVlyIntegrations: () => ({
-    ai: { completion: async () => ({ success: false }) },
-  }),
-}));
+import { describe, expect, test } from "vitest";
 
 const modules = Object.fromEntries(
   Object.entries(

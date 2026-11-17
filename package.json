@@ -1,0 +1,13 @@
+{
+  "name": "cafenetyar-release",
+  "version": "3.1.1",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "setup": "npm --prefix source ci",
+    "build": "node scripts/build-site.mjs",
+    "typecheck": "npm --prefix source run typecheck",
+    "test": "npm --prefix source test && node --test native/server.test.mjs native/composition.test.mjs"
+  }
+}

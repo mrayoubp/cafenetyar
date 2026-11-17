@@ -25,3 +25,21 @@ test('original Sites and News pages receive compatible data, and edits flow thro
 test('site preferences are per platform identity and support favorites and read markers',async()=>{const f=fixture();const item=(await(await bridgeGet(f,'websites:catalog')).json()).items[0];assert.equal((await request(f,'bridge',{name:'websites:toggleFavorite',args:{websiteId:item.id}})).status,200);assert.equal((await(await bridgeGet(f,'websites:catalog')).json()).stats.favorites,1);assert.equal((await(await bridgeGet(f,'websites:catalog',{}, {identity:'other',email:'other@example.test'})).json()).stats.favorites,0);const article=(await(await bridgeGet(f,'news:feed')).json()).items[0];await request(f,'bridge',{name:'news:markRead',args:{newsId:article.id}});assert.equal((await(await bridgeGet(f,'news:get',{newsId:article.id})).json()).read,true);});
 test('original site reports reach the admin review queue and review is protected',async()=>{const f=fixture(),o=await owner(f);const item=(await(await bridgeGet(f,'websites:catalog')).json()).items[0];await request(f,'bridge',{name:'websites:reportBroken',args:{websiteId:item.id,reason:'not_working',note:'خطای بارگذاری'}});assert.equal((await request(f,'library-requests')).status,401);const rows=await(await request(f,'library-requests',undefined,o)).json();assert.equal(rows.length,1);assert.equal(JSON.parse(rows[0].payload).websiteId,item.id);assert.equal((await request(f,'library-requests',{id:rows[0].id,status:'approved'},o)).status,200);});
 test('branding stays empty until saved, then returns the real admin settings',async()=>{const f=fixture(),o=await owner(f);assert.deepEqual(await(await request(f,'branding')).json(),{});await request(f,'settings',{title:'نام اصلی',tagline:'توضیح',heroTitle:'عنوان اصلی'},o);const d=await(await request(f,'branding')).json();assert.equal(d.title,'نام اصلی');assert.equal(d.heroTitle,'عنوان اصلی');});
+
+test('dashboard highlights use published managed content and remove unpublished entries',async()=>{
+ const f=fixture(),o=await owner(f);
+ const article={kind:'news',title:'خبر تازه داشبورد',body:'متن خبر',published:true};
+ assert.equal((await request(f,'content',article,o)).status,200);
+ const id=f.sqlite.prepare('SELECT id FROM content WHERE title=?').get(article.title).id;
+ let highlights=await(await bridgeGet(f,'news:highlights')).json();
+ assert.ok(highlights.items.some(x=>x.id===id&&x.title===article.title));
+ await request(f,'content',{...article,id,published:false},o);
+ highlights=await(await bridgeGet(f,'news:highlights')).json();
+ assert.ok(!highlights.items.some(x=>x.id===id));
+ let sites=await(await bridgeGet(f,'websites:highlights')).json();
+ assert.equal(sites.items.length,4);assert.equal(sites.total,42);
+ const site=sites.items[0];
+ await request(f,'content',{kind:'site',id:site.id,title:'سامانه به‌روز داشبورد',url:site.url,published:true},o);
+ sites=await(await bridgeGet(f,'websites:highlights')).json();
+ assert.ok(sites.items.some(x=>x.id===site.id&&x.name==='سامانه به‌روز داشبورد'));
+});

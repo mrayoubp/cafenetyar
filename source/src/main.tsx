@@ -1,15 +1,9 @@
-import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
-import { RequireAdmin } from "@/components/RequireAdmin";
-import { AdminMfaGate } from "@/components/AdminMfaGate";
-import { RequirePlatformOwner } from "@/components/RequirePlatformOwner";
 import { RequireCafe } from "@/components/RequireCafe";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteThemeSync } from "@/components/SiteThemeSync";
-import { ADMIN_PERMISSIONS } from "@/convex/lib/adminPermissions";
 import { PERMISSIONS } from "@/convex/permissions";
-import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
@@ -37,23 +31,6 @@ const CafeSettings = lazy(() => import("./pages/CafeSettings.tsx"));
 const Employees = lazy(() => import("./pages/Employees.tsx"));
 const Subscription = lazy(() => import("./pages/Subscription.tsx"));
 const AccountSettings = lazy(() => import("./pages/AccountSettings.tsx"));
-const Admin = lazy(() => import("./pages/Admin.tsx"));
-const AdminNews = lazy(() => import("./pages/AdminNews.tsx"));
-const AdminSites = lazy(() => import("./pages/AdminSites.tsx"));
-const AdminAgent = lazy(() => import("./pages/AdminAgent.tsx"));
-const AdminBilling = lazy(() => import("./pages/AdminBilling.tsx"));
-const AdminCafes = lazy(() => import("./pages/AdminCafes.tsx"));
-const AdminUsers = lazy(() => import("./pages/AdminUsers.tsx"));
-const AdminRoles = lazy(() => import("./pages/AdminRoles.tsx"));
-const AdminSupport = lazy(() => import("./pages/AdminSupport.tsx"));
-const AdminNotifications = lazy(
-  () => import("./pages/AdminNotifications.tsx"),
-);
-const AdminAudit = lazy(() => import("./pages/AdminAudit.tsx"));
-const AdminHealth = lazy(() => import("./pages/AdminHealth.tsx"));
-const AdminSettings = lazy(() => import("./pages/AdminSettings.tsx"));
-const AdminCms = lazy(() => import("./pages/AdminCms.tsx"));
-const SuperAdmin = lazy(() => import("./pages/SuperAdmin.tsx"));
 const Support = lazy(() => import("./pages/Support.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
@@ -64,24 +41,6 @@ function RouteLoading() {
       <div className="clay-sm size-11 animate-pulse rounded-2xl" />
     </div>
   );
-}
-
-/** Silent error boundary — if VlyToolbar crashes it renders nothing instead of
- *  crashing the whole app (e.g. hook errors in the browser runtime). */
-class ToolbarErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch(err: Error) {
-    console.warn("[VlyToolbar] Caught error, toolbar disabled:", err.message);
-  }
-  render() {
-    return this.state.hasError ? null : this.props.children;
-  }
 }
 
 /** Hard guard so runtime errors never leave the preview as a blank page. */
@@ -163,9 +122,6 @@ function ManagementEntry() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
-      <ToolbarErrorBoundary>
-        <VlyToolbar />
-      </ToolbarErrorBoundary>
       <ThemeProvider>
         <ConvexAuthProvider client={convex}>
           <SiteThemeSync />

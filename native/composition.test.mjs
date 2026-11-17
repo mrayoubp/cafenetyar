@@ -30,3 +30,13 @@ test('management is separate and original admin links redirect to it', async () 
     assert.equal(redirect.headers.get('location'), origin + '/manage');
   }
 });
+
+test('download directory points to the current repository and favicon resolves', async () => {
+  const response = await worker.fetch(new Request(origin + '/downloads/'), {});
+  assert.match(await response.text(), /https:\/\/github.com\/mrayoubp\/cafenetyar/);
+  const icon = await worker.fetch(new Request(origin + '/favicon.ico'), {});
+  assert.equal(icon.status, 302);
+  const svg = await worker.fetch(new Request(icon.headers.get('location')), {});
+  assert.equal(svg.status, 200);
+  assert.match(svg.headers.get('content-type'), /image\/svg/);
+});

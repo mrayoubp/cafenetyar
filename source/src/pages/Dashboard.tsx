@@ -7,7 +7,7 @@ import { useSession } from "@/hooks/use-session";
 import { api } from "@/convex/_generated/api";
 import { PERMISSIONS } from "@/convex/permissions";
 import { faRelativeTime, faToday } from "@/lib/format";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/hooks/use-managed-content";
 import { cn } from "@/lib/utils";
 import { motion, type Variants } from "framer-motion";
 import {
@@ -349,7 +349,7 @@ export default function Dashboard() {
                 {newsQuery?.hasDemo
                   ? "Demo"
                   : newsItems.length
-                    ? "زنده"
+                    ? "منتشرشده"
                     : "خالی"}
               </Badge>
             </div>

@@ -5,3 +5,8 @@ node_modules/
 source/dist/
 
 native/original-assets.generated.mjs
+
+!source/.env.example
+backups/
+.dev.vars
+.wrangler/
