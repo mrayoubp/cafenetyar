@@ -14,5 +14,8 @@
       "migrations_dir": "drizzle"
     }
   ],
-  "keep_vars": true
+  "keep_vars": true,
+  "vars": {
+    "OWNER_EMAIL": "mohamdtaha2968@gmail.com"
+  }
 }
