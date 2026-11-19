@@ -1,22 +1,12 @@
+import { normalizeSearch } from "@/lib/inventory";
+import { EntryDialog } from "@/components/accounting/EntryDialog";
+import { InventoryPanel } from "@/components/accounting/InventoryPanel";
+import { useAccounting } from "@/hooks/use-accounting";
+import type { CatalogItem, CreateEntry, LedgerItem } from "@/lib/inventory";
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -26,20 +16,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { PERMISSIONS } from "@/convex/permissions";
 import { useSession } from "@/hooks/use-session";
 import {
-  ACCOUNTING_CATEGORIES,
   ACCOUNTING_DIRECTION_LABELS,
-  ACCOUNTING_PAYMENT_METHODS,
   type AccountingDirection,
 } from "@/lib/accounting";
 import { errorMessage } from "@/lib/auth";
 import { faDateTime, faNumber, faToman } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -53,8 +38,10 @@ import {
   Search,
   Trash2,
   Wallet,
+  Package,
+  Boxes,
 } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
   Area,
@@ -68,36 +55,6 @@ import {
 import { toast } from "sonner";
 
 type DirectionFilter = "all" | AccountingDirection;
-
-type LedgerItem = {
-  id: Id<"accounting_transactions">;
-  title: string;
-  direction: AccountingDirection;
-  category: string;
-  method: string;
-  amountToman: number;
-  note: string | null;
-  occurredAt: number;
-  operatorName: string;
-  isVoided: boolean;
-  createdAt: number;
-};
-
-type LedgerData = {
-  items: LedgerItem[];
-  summary: {
-    incomeToman: number;
-    expenseToman: number;
-    balanceToman: number;
-    todayIncomeToman: number;
-    todayExpenseToman: number;
-    weekIncomeToman: number;
-    weekExpenseToman: number;
-    count: number;
-    voidedCount: number;
-    limitedTo: number;
-  };
-};
 
 function startOfDay(date: Date) {
   const copy = new Date(date);
@@ -116,7 +73,10 @@ function createWeekSeries(items: LedgerItem[]) {
     let expense = 0;
     for (const item of items) {
       if (item.isVoided) continue;
-      if (item.occurredAt < start.getTime() || item.occurredAt >= end.getTime()) {
+      if (
+        item.occurredAt < start.getTime() ||
+        item.occurredAt >= end.getTime()
+      ) {
         continue;
       }
       if (item.direction === "income") income += item.amountToman;
@@ -134,19 +94,19 @@ function createWeekSeries(items: LedgerItem[]) {
 
 export default function Accounting() {
   const { context } = useSession();
-  const ledger = useQuery(
-    api.accounting.list,
-    context?.cafe && !context.isGuest ? {} : "skip",
-  ) as LedgerData | undefined;
-  const createTransaction = useMutation(api.accounting.create);
-  const voidTransaction = useMutation(api.accounting.voidTransaction);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const accounting = useAccounting(!!context?.cafe && !context.isGuest);
+  const ledger = accounting.data;
+  const [dialog, setDialog] = useState<{
+    direction: AccountingDirection;
+    item?: CatalogItem;
+  } | null>(null);
   const [query, setQuery] = useState("");
   const [direction, setDirection] = useState<DirectionFilter>("all");
   const [busy, setBusy] = useState(false);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const canWrite =
-    context?.permissions.includes(PERMISSIONS.TRANSACTIONS_WRITE) ?? false;
+    (context?.permissions.includes(PERMISSIONS.TRANSACTIONS_WRITE) ?? false) &&
+    !!ledger?.canWrite;
   const canViewReports =
     (context?.permissions.includes(PERMISSIONS.REPORTS_VIEW) ?? false) &&
     context?.hasAdvancedReports === true;
@@ -155,14 +115,20 @@ export default function Accounting() {
   const summary = ledger?.summary;
 
   const filtered = useMemo(() => {
-    const normalized = query.trim();
+    const normalized = normalizeSearch(query);
     return items.filter((item) => {
       const matchesDirection =
         direction === "all" || item.direction === direction;
       const matchesQuery =
         normalized.length === 0 ||
-        [item.title, item.category, item.method, item.operatorName, item.note ?? ""]
-          .some((value) => value.includes(normalized));
+        [
+          item.title,
+          item.category,
+          item.method,
+          item.operatorName,
+          item.note ?? "",
+          ...(item.lines || []).map((x) => x.title),
+        ].some((value) => normalizeSearch(value).includes(normalized));
       return matchesDirection && matchesQuery;
     });
   }, [items, direction, query]);
@@ -187,21 +153,21 @@ export default function Accounting() {
       .sort((first, second) => second.total - first.total);
   }, [items]);
 
-  const handleCreate = async (payload: {
-    title: string;
-    amountToman: number;
-    direction: AccountingDirection;
-    category: string;
-    method: string;
-    note?: string;
-  }) => {
+  const handleCreate = async (payload: CreateEntry) => {
     setBusy(true);
     try {
-      await createTransaction(payload);
-      setDialogOpen(false);
-      toast.success("تراکنش با موفقیت ثبت شد.", {
-        description: "این رکورد در دفتر مالی کافی‌نت ذخیره شد.",
-      });
+      await accounting.mutate("/entries", payload);
+      setDialog(null);
+      toast.success(
+        payload.direction === "expense"
+          ? "هزینه ثبت شد."
+          : "کار و درآمد ثبت شد.",
+        {
+          description: payload.lines?.length
+            ? "اقلام و موجودی انبار به‌روز شدند."
+            : "تراکنش در دفتر مالی ذخیره شد.",
+        },
+      );
       return true;
     } catch (caught) {
       toast.error(errorMessage(caught, "ثبت تراکنش ممکن نشد."));
@@ -212,12 +178,16 @@ export default function Accounting() {
   };
 
   const handleVoid = async (item: LedgerItem) => {
-    if (!window.confirm(`تراکنش «${item.title}» ابطال شود؟ رکورد برای حسابرسی باقی می‌ماند.`)) {
+    if (
+      !window.confirm(
+        `تراکنش «${item.title}» ابطال شود؟ رکورد برای حسابرسی باقی می‌ماند.`,
+      )
+    ) {
       return;
     }
     setVoidingId(item.id);
     try {
-      await voidTransaction({ transactionId: item.id });
+      await accounting.mutate("/void", { transactionId: item.id });
       toast.success("تراکنش ابطال شد.");
     } catch (caught) {
       toast.error(errorMessage(caught, "ابطال تراکنش ممکن نشد."));
@@ -245,7 +215,10 @@ export default function Accounting() {
         {
           label: "خالص دفتر",
           value: faToman(Math.abs(summary.balanceToman)),
-          hint: summary.balanceToman < 0 ? "مانده هزینه بیش از درآمد" : "درآمد منهای هزینه",
+          hint:
+            summary.balanceToman < 0
+              ? "مانده هزینه بیش از درآمد"
+              : "درآمد منهای هزینه",
           icon: Wallet,
           tone: "tile-navy",
         },
@@ -296,7 +269,7 @@ export default function Accounting() {
           <div className="flex shrink-0 flex-col items-stretch gap-1 sm:items-end">
             <Button
               type="button"
-              onClick={() => setDialogOpen(true)}
+              onClick={() => setDialog({ direction: "income" })}
               disabled={!canWrite}
               title={
                 canWrite
@@ -306,7 +279,17 @@ export default function Accounting() {
               className="clay-primary h-11 rounded-2xl border-0 px-4 text-[12.5px] font-bold hover:brightness-105 disabled:opacity-50"
             >
               <Plus className="size-4" />
-              ثبت تراکنش
+              ثبت کار / فروش
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialog({ direction: "expense" })}
+              disabled={!canWrite}
+              className="mt-1 h-10 rounded-2xl border-rose-500/20 px-4 text-xs font-bold text-rose-700 hover:bg-rose-500/5 dark:text-rose-300"
+            >
+              <ArrowDownRight className="size-4" />
+              ثبت هزینه
             </Button>
             {!canWrite && (
               <span className="text-[9.5px] text-muted-foreground">
@@ -316,7 +299,25 @@ export default function Accounting() {
           </div>
         </header>
 
-        {loading ? (
+        {accounting.error && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4"
+          >
+            <p className="text-xs leading-6 text-destructive">
+              {accounting.error}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void accounting.refresh()}
+              className="rounded-xl text-xs"
+            >
+              تلاش دوباره
+            </Button>
+          </div>
+        )}
+        {loading && !accounting.error ? (
           <div className="clay flex justify-center rounded-[28px] p-16">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
@@ -468,7 +469,10 @@ export default function Accounting() {
               <div className="clay rounded-[28px] p-5">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-sm font-extrabold">خلاصه دفتر</h2>
-                  <Badge variant="secondary" className="rounded-full text-[10px]">
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full text-[10px]"
+                  >
                     ماندگار
                   </Badge>
                 </div>
@@ -539,6 +543,20 @@ export default function Accounting() {
                     <ReceiptText className="size-3.5" />
                     دفتر تراکنش‌ها
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="catalog"
+                    className="h-8 flex-none rounded-xl px-3 text-[11.5px] data-[state=active]:clay-sm"
+                  >
+                    <Package className="size-3.5" />
+                    کالا و خدمت
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="stock"
+                    className="h-8 flex-none rounded-xl px-3 text-[11.5px] data-[state=active]:clay-sm"
+                  >
+                    <Boxes className="size-3.5" />
+                    انبار
+                  </TabsTrigger>
                   {canViewReports && (
                     <TabsTrigger
                       value="reports"
@@ -554,6 +572,19 @@ export default function Accounting() {
                 </span>
               </div>
 
+              {(["catalog", "stock"] as const).map((view) => (
+                <TabsContent key={view} value={view}>
+                  <InventoryPanel
+                    view={view}
+                    catalog={ledger?.catalog || []}
+                    movements={ledger?.movements || []}
+                    canWrite={canWrite}
+                    isOwner={!!ledger?.isOwner}
+                    mutate={accounting.mutate}
+                    onSell={(item) => setDialog({ direction: "income", item })}
+                  />
+                </TabsContent>
+              ))}
               <TabsContent value="transactions">
                 <section className="clay rounded-[28px] p-4 sm:p-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -631,8 +662,33 @@ export default function Accounting() {
                               item.isVoided && "opacity-55",
                             )}
                           >
-                            <TableCell className="max-w-[180px] truncate text-[11.5px] font-semibold">
-                              {item.title}
+                            <TableCell className="max-w-[240px] text-[11.5px] font-semibold">
+                              <p className="break-words">{item.title}</p>
+                              {item.note && (
+                                <p className="mt-1 line-clamp-2 text-[10px] font-normal text-muted-foreground">
+                                  {item.note}
+                                </p>
+                              )}
+                              {!!item.lines?.length && (
+                                <details className="mt-1 text-[10px] font-normal">
+                                  <summary className="cursor-pointer text-primary">
+                                    {faNumber(item.lines.length)} قلم · جزئیات
+                                  </summary>
+                                  <ul className="mt-2 space-y-1">
+                                    {item.lines.map((line, i) => (
+                                      <li key={i}>
+                                        {line.title} · {faNumber(line.quantity)}{" "}
+                                        {line.unit} × {faToman(line.unitPrice)}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                  {!!item.discountToman && (
+                                    <p className="mt-1 text-muted-foreground">
+                                      تخفیف: {faToman(item.discountToman)}
+                                    </p>
+                                  )}
+                                </details>
+                              )}
                             </TableCell>
                             <TableCell className="text-[10.5px] text-muted-foreground">
                               {item.category}
@@ -712,7 +768,7 @@ export default function Accounting() {
                         </p>
                         <p className="text-[10.5px] text-muted-foreground">
                           {items.length === 0
-                            ? "با دکمه «ثبت تراکنش» اولین دریافت یا هزینه را ثبت کنید."
+                            ? "با دکمه‌های «ثبت کار / فروش» یا «ثبت هزینه» شروع کنید."
                             : "عبارت جستجو یا فیلتر نوع را تغییر دهید."}
                         </p>
                       </div>
@@ -732,12 +788,17 @@ export default function Accounting() {
                   <section className="clay rounded-[28px] p-4 sm:p-5">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <h2 className="text-sm font-extrabold">گزارش دسته‌بندی</h2>
+                        <h2 className="text-sm font-extrabold">
+                          گزارش دسته‌بندی
+                        </h2>
                         <p className="mt-1 text-[11px] text-muted-foreground">
                           جمع واقعی تراکنش‌های فعال بر اساس دسته
                         </p>
                       </div>
-                      <Badge variant="secondary" className="rounded-full text-[9px]">
+                      <Badge
+                        variant="secondary"
+                        className="rounded-full text-[9px]"
+                      >
                         محاسبه از دفتر
                       </Badge>
                     </div>
@@ -794,246 +855,16 @@ export default function Accounting() {
         )}
       </div>
 
-      <TransactionDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        busy={busy}
-        onSubmit={handleCreate}
-      />
+      {dialog && (
+        <EntryDialog
+          catalog={ledger?.catalog || []}
+          direction={dialog.direction}
+          initialItem={dialog.item}
+          onClose={() => setDialog(null)}
+          busy={busy}
+          onSubmit={handleCreate}
+        />
+      )}
     </AppShell>
-  );
-}
-
-function TransactionDialog({
-  open,
-  onOpenChange,
-  busy,
-  onSubmit,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  busy: boolean;
-  onSubmit: (payload: {
-    title: string;
-    amountToman: number;
-    direction: AccountingDirection;
-    category: string;
-    method: string;
-    note?: string;
-  }) => Promise<boolean>;
-}) {
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [direction, setDirection] = useState<AccountingDirection>("income");
-  const [category, setCategory] = useState<string>(ACCOUNTING_CATEGORIES[0]);
-  const [method, setMethod] = useState<string>(ACCOUNTING_PAYMENT_METHODS[0]);
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const reset = () => {
-    setTitle("");
-    setAmount("");
-    setDirection("income");
-    setCategory(ACCOUNTING_CATEGORIES[0]);
-    setMethod(ACCOUNTING_PAYMENT_METHODS[0]);
-    setNote("");
-    setError(null);
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const numericAmount = Math.round(Number(amount));
-    if (title.trim().length < 3) {
-      setError("عنوان تراکنش را کامل‌تر وارد کنید.");
-      return;
-    }
-    if (
-      !Number.isSafeInteger(numericAmount) ||
-      numericAmount < 1 ||
-      numericAmount > 1_000_000_000
-    ) {
-      setError("مبلغ باید بین ۱ و ۱٬۰۰۰٬۰۰۰٬۰۰۰ تومان باشد.");
-      return;
-    }
-    setError(null);
-    const saved = await onSubmit({
-      title: title.trim(),
-      amountToman: numericAmount,
-      direction,
-      category,
-      method,
-      note: note.trim() || undefined,
-    });
-    if (saved) reset();
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next);
-        if (!next) reset();
-      }}
-    >
-      <DialogContent className="clay gap-0 rounded-[28px] border-0 p-0 sm:max-w-md">
-        <DialogHeader className="border-b border-border/50 px-5 py-4 pe-5 ps-12 text-start sm:text-start">
-          <DialogTitle className="text-base font-extrabold">
-            ثبت تراکنش مالی
-          </DialogTitle>
-          <DialogDescription className="text-[11px] leading-5">
-            این رکورد برای همین کافی‌نت ذخیره می‌شود و در دفتر مالی قابل مشاهده
-            است.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 p-5">
-          <div className="space-y-1.5">
-            <Label htmlFor="tx-title" className="text-[11.5px] font-semibold">
-              عنوان تراکنش
-            </Label>
-            <Input
-              id="tx-title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="مثلاً شارژ حساب کاربر"
-              maxLength={120}
-              className="clay-inset h-10 rounded-xl border-0 bg-transparent px-3 text-[12px] shadow-none"
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="tx-amount" className="text-[11.5px] font-semibold">
-                مبلغ (تومان)
-              </Label>
-              <Input
-                id="tx-amount"
-                type="number"
-                min={1}
-                max={1_000_000_000}
-                inputMode="numeric"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                placeholder="150000"
-                dir="ltr"
-                className="clay-inset h-10 rounded-xl border-0 bg-transparent px-3 text-start text-[12px] shadow-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11.5px] font-semibold">نوع</Label>
-              <div className="clay-inset flex h-10 items-center gap-1 rounded-xl p-1">
-                {(
-                  [
-                    { key: "income", label: "درآمد" },
-                    { key: "expense", label: "هزینه" },
-                  ] as const
-                ).map((option) => (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onClick={() => setDirection(option.key)}
-                    className={cn(
-                      "flex-1 rounded-lg py-1.5 text-[10.5px] font-semibold transition-colors",
-                      direction === option.key
-                        ? "clay-sm text-primary"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-[11.5px] font-semibold">دسته</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="clay-inset h-10 w-full rounded-xl border-0 bg-transparent px-3 text-[12px] shadow-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-border/60">
-                  {ACCOUNTING_CATEGORIES.map((item) => (
-                    <SelectItem key={item} value={item} className="rounded-xl">
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11.5px] font-semibold">روش پرداخت</Label>
-              <Select value={method} onValueChange={setMethod}>
-                <SelectTrigger className="clay-inset h-10 w-full rounded-xl border-0 bg-transparent px-3 text-[12px] shadow-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-border/60">
-                  {ACCOUNTING_PAYMENT_METHODS.map((item) => (
-                    <SelectItem key={item} value={item} className="rounded-xl">
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="tx-note" className="text-[11.5px] font-semibold">
-              یادداشت (اختیاری)
-            </Label>
-            <Input
-              id="tx-note"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="مثلاً بابت شیفت عصر"
-              maxLength={500}
-              className="clay-inset h-10 rounded-xl border-0 bg-transparent px-3 text-[12px] shadow-none"
-            />
-          </div>
-
-          {error && (
-            <p className="rounded-xl bg-destructive/10 px-3 py-2 text-[11px] font-medium text-destructive">
-              {error}
-            </p>
-          )}
-
-          <div className="clay-inset flex items-start gap-2 rounded-2xl p-3">
-            <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-            <p className="text-[10px] leading-5 text-muted-foreground">
-              تراکنش ماندگار است و پس از ثبت فقط توسط صاحب کافی‌نت قابل ابطال
-              خواهد بود.
-            </p>
-          </div>
-
-          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={busy}
-              className="h-10 rounded-xl px-4 text-[12px] font-semibold"
-            >
-              انصراف
-            </Button>
-            <Button
-              type="submit"
-              disabled={busy}
-              className="clay-primary h-10 rounded-xl border-0 px-5 text-[12px] font-bold hover:brightness-105"
-            >
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-4" />
-              )}
-              ثبت در دفتر
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }

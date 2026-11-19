@@ -156,7 +156,7 @@ const MANAGEMENT_NAV: NavItem[] = [
 
 const SECTION_TITLES: Record<SectionKey, { title: string; eyebrow: string }> = {
   overview: { title: "نمای کلی", eyebrow: "پنل مدیریت کافی‌نت" },
-  accounting: { title: "حسابداری هوشمند", eyebrow: "نسخه اول · داده‌های نمونه" },
+  accounting: { title: "حسابداری و انبار", eyebrow: "دفتر مالی · کالا و خدمات" },
   news: { title: "اخبار روز", eyebrow: "مرکز خبر کافی‌نت" },
   sites: { title: "سایت‌های کاربردی", eyebrow: "بانک سامانه‌های پرکاربرد" },
   agent: { title: "ایجنت هوشمند", eyebrow: "دستیار تخصصی کافی‌نت" },

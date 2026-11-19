@@ -1,3 +1,4 @@
+import {handleAccounting} from './accounting.mjs';
 import {bridge} from './bridge.mjs';
 import library from './library.json' with { type: 'json' };
 import { html } from './ui.mjs';
@@ -34,6 +35,7 @@ export default {async fetch(request,env){try{
   if(Number(request.headers.get('content-length')||0)>1500000)fail('حجم درخواست زیاد است.',413);
  }
  let body={};if(request.method==='POST'){const raw=await request.text();if(raw.length>1500000)fail('حجم درخواست زیاد است.',413);try{body=JSON.parse(raw);}catch{fail('اطلاعات معتبر نیست.');}}
+ if(path==='/api/accounting'||path.startsWith('/api/accounting/'))return await handleAccounting(request,env,body);
  if(path==='/api/bridge'){const bridgeRequest=request.method==='POST'?new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify(body)}):request;return await bridge(bridgeRequest,db,(await contentRows(db)).filter(x=>x.published));}
  if(path==='/api/branding'&&request.method==='GET'){const row=await one(db,"SELECT value FROM settings WHERE id='site'");return json(row?JSON.parse(row.value):{});}
  if(path==='/api/public'&&request.method==='GET'){
