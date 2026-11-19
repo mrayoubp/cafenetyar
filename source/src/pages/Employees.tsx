@@ -174,7 +174,7 @@ export default function Employees() {
       setAddForm(EMPTY_ADD);
     } catch (caught) {
       setAddError(
-        errorMessage(caught, "افزودن کارمند ممکن نشد. اطلاعات را بررسی کنید."),
+        errorMessage(caught, "درخواست حساب کارمند ممکن نشد. اطلاعات را بررسی کنید."),
       );
     } finally {
       setAddLoading(false);
@@ -265,18 +265,18 @@ export default function Employees() {
               کارمندان و دسترسی‌ها
             </h1>
             <p className="mt-1 max-w-xl text-[11.5px] leading-6 text-muted-foreground">
-              برای هر کارمند یک حساب واقعی با شماره موبایل بسازید و مجوزهای او
+              ساخت حساب جدید فقط توسط مدیر اصلی انجام می‌شود. مجوزهای کارکنان فعلی را
               را دقیق تعیین کنید. هر کارمند فقط به داده‌های همین کافی‌نت دسترسی
               دارد.
             </p>
           </div>
           <Button
             type="button"
-            onClick={openAdd}
+            onClick={() => window.location.assign("https://t.me/Cafenetyarr")}
             className="clay-primary h-11 rounded-xl border-0 px-4 text-[12px] font-bold hover:brightness-105"
           >
             <Plus className="size-4" />
-            افزودن کارمند
+            درخواست حساب کارمند
           </Button>
         </div>
 
@@ -315,11 +315,11 @@ export default function Employees() {
             </p>
             <Button
               type="button"
-              onClick={openAdd}
+              onClick={() => window.location.assign("https://t.me/Cafenetyarr")}
               className="clay-primary mt-4 h-10 rounded-xl border-0 px-4 text-[11.5px] font-bold hover:brightness-105"
             >
               <Plus className="size-4" />
-              افزودن اولین کارمند
+              درخواست اولین حساب کارمند
             </Button>
           </div>
         ) : (
@@ -452,7 +452,7 @@ export default function Employees() {
             <DialogHeader className="text-start">
               <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
                 <UserRound className="size-4 text-primary" />
-                افزودن کارمند
+                درخواست حساب کارمند
               </DialogTitle>
               <DialogDescription className="text-[11px] leading-5">
                 یک حساب واقعی برای کارمند ساخته می‌شود؛ رمز عبور را بعد از ثبت

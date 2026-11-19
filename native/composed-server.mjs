@@ -1,8 +1,10 @@
 import management from './server.mjs';
+import {isConvexPath,convexProxy} from './convex-proxy.mjs';
 import assets from './original-assets.generated.mjs';
 const typeFor=path=>path.endsWith('.html')?'text/html; charset=utf-8':path.endsWith('.js')?'application/javascript; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':path.endsWith('.svg')?'image/svg+xml':path.endsWith('.png')?'image/png':path.endsWith('.woff2')?'font/woff2':path.endsWith('.zip')?'application/zip':path.endsWith('.webmanifest')?'application/manifest+json':'application/octet-stream';
 export default {async fetch(request,env,ctx){
  const path=new URL(request.url).pathname;
+ if(isConvexPath(path))return convexProxy(request,env,ctx);
  if(!['GET','HEAD'].includes(request.method)&&!path.startsWith('/api/'))return new Response('Method not allowed',{status:405,headers:{Allow:'GET, HEAD'}});
  if(path==='/favicon.ico')return Response.redirect(new URL('/logo.svg',request.url),302);
  if(path==='/downloads/kafinetyar-setup.zip')return Response.redirect('https://github.com/mrayoubp/cafenetyar',302);

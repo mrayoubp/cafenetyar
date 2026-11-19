@@ -27,6 +27,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { toRial } from "@/lib/inventory";
 import type { LedgerItem } from "@/lib/inventory";
 import { faNumber } from "@/lib/format";
 import { financeDate, financeTime, shortDocumentId } from "@/lib/finance-view";
@@ -44,15 +45,15 @@ export function Money({
     <span
       className={
         "fin-money " +
-        (Math.abs(value) >= 10000000000 ? "fin-money-compact " : "") +
+        (Math.abs(toRial(value)) >= 10000000000 ? "fin-money-compact " : "") +
         className
       }
     >
       <b dir="ltr">
         {value < 0 ? "−" : signed ? "+" : ""}
-        {faNumber(Math.abs(value))}
+        {faNumber(toRial(Math.abs(value)))}
       </b>
-      <small>تومان</small>
+      <small>ریال</small>
     </span>
   );
 }
@@ -244,16 +245,16 @@ export function EntryPreview({
                       <td>
                         {faNumber(l.quantity)} {l.unit}
                       </td>
-                      <td>{faNumber(l.unitPrice)}</td>
-                      <td>{faNumber(l.total)}</td>
+                      <td>{faNumber(toRial(l.unitPrice))}</td>
+                      <td>{faNumber(toRial(l.total))}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td>{item.title}</td>
                     <td>۱</td>
-                    <td>{faNumber(item.amountToman)}</td>
-                    <td>{faNumber(item.amountToman)}</td>
+                    <td>{faNumber(toRial(item.amountToman))}</td>
+                    <td>{faNumber(toRial(item.amountToman))}</td>
                   </tr>
                 )}
               </tbody>
@@ -267,10 +268,10 @@ export function EntryPreview({
             </div>
             <div className="fin-invoice-total">
               <p>
-                جمع اقلام <b>{faNumber(gross)}</b>
+                جمع اقلام <b>{faNumber(toRial(gross))}</b>
               </p>
               <p>
-                تخفیف <b>{faNumber(item.discountToman || 0)}</b>
+                تخفیف <b>{faNumber(toRial(item.discountToman || 0))}</b>
               </p>
               <div>
                 <span>مبلغ نهایی</span>

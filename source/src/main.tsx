@@ -1,3 +1,4 @@
+import { SiteAdmissionProvider } from "@/hooks/use-site-admission";
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireCafe } from "@/components/RequireCafe";
@@ -66,7 +67,9 @@ class RootErrorBoundary extends React.Component<
         <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
           <div className="max-w-lg text-center">
             <p className="text-sm font-semibold">
-              {showDetails ? "Preview runtime error" : "خطای غیرمنتظره‌ای رخ داد"}
+              {showDetails
+                ? "Preview runtime error"
+                : "خطای غیرمنتظره‌ای رخ داد"}
             </p>
             <p className="mt-2 text-xs text-muted-foreground break-words">
               {showDetails
@@ -86,9 +89,9 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
-
-
+const convex = new ConvexReactClient(window.location.origin, {
+  skipConvexDeploymentUrlCheck: true,
+});
 
 function RouteSyncer() {
   const location = useLocation();
@@ -113,9 +116,10 @@ function RouteSyncer() {
   return null;
 }
 
-
 function ManagementEntry() {
-  useEffect(() => { window.location.replace('/manage'); }, []);
+  useEffect(() => {
+    window.location.replace("/manage");
+  }, []);
   return <RouteLoading />;
 }
 
@@ -123,171 +127,169 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
       <ThemeProvider>
-        <ConvexAuthProvider client={convex}>
-          <SiteThemeSync />
-          <BrowserRouter>
-            <RouteSyncer />
-            <Suspense fallback={<RouteLoading />}>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/legal/:document" element={<Legal />} />
-                <Route path="/p/:slug" element={<CmsPage />} />
-                <Route path="/help" element={<HelpCenter />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route
-                  path="/auth"
-                  element={<AuthPage redirectAfterAuth="/dashboard" />}
-                />
-                <Route
-                  path="/forgot-password"
-                  element={<ForgotPassword />}
-                />
-                <Route
-                  path="/setup"
-                  element={
-                    <RequireAuth>
-                      <Setup />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe permission={PERMISSIONS.DASHBOARD_VIEW}>
-                        <Dashboard />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/accounting"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe
-                        permission={PERMISSIONS.ACCOUNTING_VIEW}
-                      >
-                        <Accounting />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/news"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe permission={PERMISSIONS.NEWS_VIEW}>
-                        <News />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/news/:newsId"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe permission={PERMISSIONS.NEWS_VIEW}>
-                        <NewsDetail />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/sites"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe permission={PERMISSIONS.SITES_VIEW}>
-                        <Sites />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/agent"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe
-                        permission={PERMISSIONS.AGENT_USE}
-                        planFeature="agent"
-                      >
-                        <Agent />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/rates"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe
-                        permission={PERMISSIONS.RATES_VIEW}
-                        planFeature="rates"
-                      >
-                        <Rates />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/cafe"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe ownerOnly>
-                        <CafeSettings />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/employees"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe
-                        permission={PERMISSIONS.EMPLOYEES_MANAGE}
-                      >
-                        <Employees />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/subscription"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe ownerOnly>
-                        <Subscription />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/support"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe allowSuspended>
-                        <Support />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/dashboard/account"
-                  element={
-                    <RequireAuth>
-                      <RequireCafe allowSuspended>
-                        <AccountSettings />
-                      </RequireCafe>
-                    </RequireAuth>
-                  }
-                />
-                <Route path="/admin/*" element={<ManagementEntry />} />
-                <Route path="/super-admin" element={<ManagementEntry />} />
-                <Route path="/manage/*" element={<ManagementEntry />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-          <Toaster />
+        <ConvexAuthProvider
+          client={convex}
+          storageNamespace={import.meta.env.VITE_CONVEX_URL}
+        >
+          <SiteAdmissionProvider>
+            <SiteThemeSync />
+            <BrowserRouter>
+              <RouteSyncer />
+              <Suspense fallback={<RouteLoading />}>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/legal/:document" element={<Legal />} />
+                  <Route path="/p/:slug" element={<CmsPage />} />
+                  <Route path="/help" element={<HelpCenter />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route
+                    path="/auth"
+                    element={<AuthPage redirectAfterAuth="/dashboard" />}
+                  />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route
+                    path="/setup"
+                    element={
+                      <RequireAuth>
+                        <Setup />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe permission={PERMISSIONS.DASHBOARD_VIEW}>
+                          <Dashboard />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/accounting"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe permission={PERMISSIONS.ACCOUNTING_VIEW}>
+                          <Accounting />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/news"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe permission={PERMISSIONS.NEWS_VIEW}>
+                          <News />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/news/:newsId"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe permission={PERMISSIONS.NEWS_VIEW}>
+                          <NewsDetail />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/sites"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe permission={PERMISSIONS.SITES_VIEW}>
+                          <Sites />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/agent"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe
+                          permission={PERMISSIONS.AGENT_USE}
+                          planFeature="agent"
+                        >
+                          <Agent />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/rates"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe
+                          permission={PERMISSIONS.RATES_VIEW}
+                          planFeature="rates"
+                        >
+                          <Rates />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/cafe"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe ownerOnly>
+                          <CafeSettings />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/employees"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe permission={PERMISSIONS.EMPLOYEES_MANAGE}>
+                          <Employees />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/subscription"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe ownerOnly>
+                          <Subscription />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/support"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe allowSuspended>
+                          <Support />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/account"
+                    element={
+                      <RequireAuth>
+                        <RequireCafe allowSuspended>
+                          <AccountSettings />
+                        </RequireCafe>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route path="/admin/*" element={<ManagementEntry />} />
+                  <Route path="/super-admin" element={<ManagementEntry />} />
+                  <Route path="/manage/*" element={<ManagementEntry />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+            <Toaster />
+          </SiteAdmissionProvider>
         </ConvexAuthProvider>
       </ThemeProvider>
     </RootErrorBoundary>

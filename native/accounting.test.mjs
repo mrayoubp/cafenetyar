@@ -10,6 +10,7 @@ function fixture() {
     "0001_content_metadata",
     "0002_library_preferences",
     "0003_accounting_inventory",
+    "0004_site_access",
   ])
     sqlite.exec(
       readFileSync(
@@ -57,31 +58,47 @@ function fixture() {
   };
   const users = {
     owner: {
-      user: { id: "u1", name: "مالک" },
+      user: { id: "u1", name: "مالک", phone: "09939417533" },
       cafe: { id: "c1", status: "active" },
       permissions: ["accounting.view", "transactions.write"],
       isOwner: true,
       membershipActive: true,
     },
     other: {
-      user: { id: "u2", name: "دیگری" },
+      user: { id: "u2", name: "دیگری", phone: "09120000002" },
       cafe: { id: "c2", status: "active" },
       permissions: ["accounting.view", "transactions.write"],
       isOwner: true,
     },
     staff: {
-      user: { id: "u3" },
+      user: { id: "u3", phone: "09120000003" },
       cafe: { id: "c1", status: "active" },
       permissions: ["accounting.view", "transactions.write"],
       isOwner: false,
     },
     read: {
-      user: { id: "u4" },
+      user: { id: "u4", phone: "09120000004" },
       cafe: { id: "c1", status: "active" },
       permissions: ["accounting.view"],
       isOwner: false,
     },
   };
+  sqlite.exec(
+    "INSERT INTO accounts(id,email,phone,name,role,created_at) VALUES('platform-owner','owner@test.local','09939417533','مالک','owner',0)",
+  );
+  for (const n of [2, 3, 4])
+    sqlite
+      .prepare(
+        "INSERT INTO site_logins(id,username,phone,name,cafe,status,active,request_id,created_by,created_at,updated_at) VALUES(?,?,?,?,?,'ready',1,?,'platform-owner',0,0)",
+      )
+      .run(
+        "login" + n,
+        "user" + n,
+        "0912000000" + n,
+        "آزمایش",
+        "کافی‌نت",
+        "request-for-user-" + n,
+      );
   const legacy = {
     items: [
       {

@@ -35,6 +35,9 @@ import { downloadCsv } from "@/lib/csv";
 import {
   inputNumber,
   validMoney,
+  rialInputToToman,
+  toRial,
+  stockLevel,
   normalizeSearch,
   type CatalogItem,
   type StockMovement,
@@ -139,8 +142,8 @@ export function InventoryPanel({
         "نوع",
         "کد",
         "واحد",
-        "قیمت فروش",
-        "بهای خرید",
+        "قیمت فروش (ریال)",
+        "بهای خرید (ریال)",
         "موجودی",
         "حد هشدار",
         "وضعیت",
@@ -150,8 +153,8 @@ export function InventoryPanel({
         x.kind === "product" ? "کالا" : "خدمت",
         x.sku,
         x.unit,
-        x.priceToman,
-        x.costToman,
+        toRial(x.priceToman),
+        toRial(x.costToman),
         x.kind === "product" ? x.quantity : null,
         x.kind === "product" ? x.lowStock : null,
         x.archived ? "بایگانی" : "فعال",
@@ -161,14 +164,28 @@ export function InventoryPanel({
     <div className={card ? "fin-product-actions" : "fin-table-actions"}>
       {canWrite &&
         !item.archived &&
+        item.kind === "product" &&
+        view !== "stock" && (
+          <button
+            type="button"
+            className="fin-button subtle small"
+            onClick={() => setStock({ item, kind: "in" })}
+          >
+            <Plus size={13} />
+            افزایش موجودی
+          </button>
+        )}
+      {canWrite &&
+        !item.archived &&
         (view === "stock" ? (
           <>
             <button
               className="fin-button subtle small"
+              type="button"
               onClick={() => setStock({ item, kind: "in" })}
             >
               <Plus size={13} />
-              ورود
+              افزایش موجودی
             </button>
             <button
               className="fin-button secondary small"
@@ -250,6 +267,7 @@ export function InventoryPanel({
                 <b>
                   {faNumber(item.quantity)} <small>{item.unit}</small>
                 </b>
+                <StockBar item={item} />
               </div>
             )}
             {actions(item, true)}
@@ -324,8 +342,8 @@ export function InventoryPanel({
             <p>
               ارزش برآوردی انبار
               <strong className="fin-valuation">
-                {new Intl.NumberFormat("fa-IR").format(stockValue)}{" "}
-                <small>تومان</small>
+                {new Intl.NumberFormat("fa-IR").format(stockValue * 10n)}{" "}
+                <small>ریال</small>
               </strong>
               <small>بر مبنای بهای خریدِ تعریف‌شده</small>
             </p>
@@ -495,37 +513,7 @@ export function InventoryPanel({
                                     {faNumber(item.quantity)}{" "}
                                     <small>{item.unit}</small>
                                   </strong>
-                                  {view === "stock" && (
-                                    <>
-                                      <div>
-                                        <i
-                                          className={
-                                            item.quantity <= item.lowStock
-                                              ? "warning"
-                                              : ""
-                                          }
-                                          style={{
-                                            width:
-                                              Math.max(
-                                                3,
-                                                Math.min(
-                                                  100,
-                                                  (item.quantity /
-                                                    Math.max(
-                                                      item.lowStock * 3,
-                                                      1,
-                                                    )) *
-                                                    100,
-                                                ),
-                                              ) + "%",
-                                          }}
-                                        />
-                                      </div>
-                                      <small>
-                                        حد هشدار: {faNumber(item.lowStock)}
-                                      </small>
-                                    </>
-                                  )}
+                                  <StockBar item={item} />
                                 </div>
                               ) : (
                                 <span className="fin-muted">—</span>
@@ -669,6 +657,30 @@ export function InventoryPanel({
     </div>
   );
 }
+function StockBar({ item }: { item: CatalogItem }) {
+  const level = stockLevel(item.quantity, item.lowStock);
+  return (
+    <div className="fin-stock-meter">
+      <div
+        role="meter"
+        aria-label={"موجودی " + item.title}
+        aria-valuemin={0}
+        aria-valuemax={level.max}
+        aria-valuenow={item.quantity}
+        aria-valuetext={
+          faNumber(item.quantity) +
+          " " +
+          item.unit +
+          "؛ حد هشدار " +
+          faNumber(item.lowStock)
+        }
+      >
+        <i style={{ width: level.percent + "%" }} />
+      </div>
+      <small>حد هشدار: {faNumber(item.lowStock)}</small>
+    </div>
+  );
+}
 function ActivityIcon() {
   return (
     <span className="fin-heading-icon">
@@ -690,8 +702,8 @@ function CatalogEditor({
     ),
     [title, setTitle] = useState(item?.title || ""),
     [unit, setUnit] = useState(item?.unit || "عدد"),
-    [price, setPrice] = useState(item ? String(item.priceToman) : ""),
-    [cost, setCost] = useState(String(item?.costToman || 0)),
+    [price, setPrice] = useState(item ? String(toRial(item.priceToman)) : ""),
+    [cost, setCost] = useState(String(toRial(item?.costToman || 0))),
     [quantity, setQuantity] = useState("0"),
     [low, setLow] = useState(String(item?.lowStock ?? 5)),
     [sku, setSku] = useState(item?.sku || ""),
@@ -701,14 +713,21 @@ function CatalogEditor({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    const values = [price, cost, quantity, low].map(inputNumber);
+    const values = [
+      rialInputToToman(price),
+      rialInputToToman(cost),
+      inputNumber(quantity),
+      inputNumber(low),
+    ];
     if (
       !title.trim() ||
       !price.trim() ||
       !unit.trim() ||
       !values.every((x) => validMoney(x))
     ) {
-      setError("نام، واحد، قیمت و تعداد را کامل و به‌صورت عدد صحیح وارد کنید.");
+      setError(
+        "نام و واحد را کامل کن؛ قیمت به ریال و مضرب ۱۰ و تعداد عدد صحیح باشد.",
+      );
       return;
     }
     setBusy(true);
@@ -846,7 +865,7 @@ function CatalogEditor({
                 </h3>
                 <div className="fin-field-grid">
                   <label className="fin-field">
-                    قیمت فروش <small>تومان</small>
+                    قیمت فروش <small>ریال</small>
                     <input
                       required
                       className="fin-input"
@@ -858,7 +877,7 @@ function CatalogEditor({
                   </label>
                   {kind === "product" && (
                     <label className="fin-field">
-                      بهای خرید <small>تومان</small>
+                      بهای خرید <small>ریال</small>
                       <input
                         className="fin-input"
                         inputMode="numeric"
@@ -937,8 +956,8 @@ function CatalogEditor({
                 {kind === "product" ? "کالای فیزیکی" : "خدمت"} · هر{" "}
                 {unit || "واحد"}
               </p>
-              {price.trim() && validMoney(inputNumber(price)) ? (
-                <Money value={inputNumber(price)} />
+              {price.trim() && validMoney(rialInputToToman(price)) ? (
+                <Money value={rialInputToToman(price)} />
               ) : (
                 <span className="fin-preview-placeholder">قیمت را وارد کن</span>
               )}
@@ -984,7 +1003,9 @@ function StockEditor({
   mutate: Props["mutate"];
 }) {
   const [quantity, setQuantity] = useState(""),
-    [reason, setReason] = useState(""),
+    [reason, setReason] = useState(
+      kind === "in" ? "افزایش موجودی" : "خروج از انبار",
+    ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const rid = useRef(crypto.randomUUID());
@@ -993,12 +1014,11 @@ function StockEditor({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    if (
-      !Number.isSafeInteger(qty) ||
-      qty < 1 ||
-      qty > 1000000000 ||
-      !reason.trim()
-    ) {
+    if (kind === "out" && after < 0) {
+      setError("موجودی برای این خروج کافی نیست.");
+      return;
+    }
+    if (!Number.isSafeInteger(qty) || qty < 1 || qty > 1000000000) {
       setError("تعداد و دلیل گردش را کامل وارد کنید.");
       return;
     }
@@ -1009,7 +1029,8 @@ function StockEditor({
         itemId: item.id,
         kind,
         quantity: qty,
-        reason,
+        reason:
+          reason.trim() || (kind === "in" ? "افزایش موجودی" : "خروج از انبار"),
         requestId: rid.current,
       });
       toast.success("گردش موجودی ثبت شد.");
@@ -1046,78 +1067,90 @@ function StockEditor({
           </div>
         </DialogHeader>
         <form onSubmit={submit}>
-          <div className="fin-stock-form">
-            <div className="fin-stock-preview">
-              <span>
-                موجودی فعلی
-                <b>
-                  {faNumber(item.quantity)} <small>{item.unit}</small>
-                </b>
-              </span>
-              <ArrowLeft size={20} />
-              <span>
-                پس از ثبت
-                <b className={after < 0 ? "fin-red" : "fin-green"}>
-                  {faNumber(after)} <small>{item.unit}</small>
-                </b>
-              </span>
-            </div>
-            <label className="fin-field">
-              تعداد {kind === "in" ? "ورودی" : "خروجی"}{" "}
-              <small>({item.unit})</small>
-              <input
-                className="fin-input fin-quantity-large"
-                required
-                inputMode="numeric"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                autoFocus
-                placeholder="۰"
-              />
-            </label>
-            <label className="fin-field">
-              شرح گردش
-              <input
-                className="fin-input"
-                required
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                maxLength={300}
-                placeholder={
-                  kind === "in"
-                    ? "مثلاً تأمین کالا از فروشگاه"
-                    : "مثلاً مصرف داخلی یا ضایعات"
-                }
-              />
-            </label>
-            <p className="fin-field-hint">
-              این عملیات موجودی را تغییر می‌دهد. پرداخت خرید را در «ثبت هزینه»
-              وارد کن.
-            </p>
-            {error && (
-              <p className="fin-form-error" role="alert">
-                {error}
+          <fieldset
+            disabled={busy}
+            style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+          >
+            <div className="fin-stock-form">
+              <div className="fin-stock-preview">
+                <span>
+                  موجودی فعلی
+                  <b>
+                    {faNumber(item.quantity)} <small>{item.unit}</small>
+                  </b>
+                </span>
+                <ArrowLeft size={20} />
+                <span>
+                  پس از ثبت
+                  <b className={after < 0 ? "fin-red" : "fin-green"}>
+                    {faNumber(after)} <small>{item.unit}</small>
+                  </b>
+                </span>
+              </div>
+              <label className="fin-field">
+                تعداد {kind === "in" ? "ورودی" : "خروجی"}{" "}
+                <small>({item.unit})</small>
+                <input
+                  className="fin-input fin-quantity-large"
+                  required
+                  inputMode="numeric"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  autoFocus
+                  placeholder="۰"
+                />
+              </label>
+              <label className="fin-field">
+                شرح گردش
+                <input
+                  className="fin-input"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  maxLength={300}
+                  placeholder={
+                    kind === "in"
+                      ? "مثلاً تأمین کالا از فروشگاه"
+                      : "مثلاً مصرف داخلی یا ضایعات"
+                  }
+                />
+              </label>
+              <p className="fin-field-hint">
+                این عملیات موجودی را تغییر می‌دهد. پرداخت خرید را در «ثبت هزینه»
+                وارد کن.
               </p>
-            )}
-          </div>
-          <div className="fin-dialog-actions">
-            <button
-              type="button"
-              disabled={busy}
-              className="fin-button secondary"
-              onClick={onClose}
-            >
-              انصراف
-            </button>
-            <button disabled={busy} className="fin-button primary">
-              {busy ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Check size={16} />
+              {error && (
+                <p className="fin-form-error" role="alert">
+                  {error}
+                </p>
               )}
-              ثبت {kind === "in" ? "ورود" : "خروج"} کالا
-            </button>
-          </div>
+            </div>
+            <div className="fin-dialog-actions">
+              <button
+                type="button"
+                disabled={busy}
+                className="fin-button secondary"
+                onClick={onClose}
+              >
+                انصراف
+              </button>
+              <button
+                type="submit"
+                disabled={busy}
+                className="fin-button primary"
+              >
+                {busy ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Check size={16} />
+                )}
+                {busy
+                  ? "در حال ثبت…"
+                  : kind === "in"
+                    ? "ثبت افزایش موجودی"
+                    : "ثبت خروج کالا"}
+              </button>
+            </div>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

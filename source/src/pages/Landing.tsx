@@ -247,8 +247,8 @@ export default function Landing() {
               size="sm"
               className="clay-primary h-10 rounded-xl border-0 px-3.5 text-[11.5px] font-bold hover:brightness-105"
             >
-              <Link to="/auth?mode=signup">
-                ثبت‌نام کافی‌نت
+              <Link to="/auth">
+                دریافت حساب کافی‌نت
                 <ArrowLeft className="size-4" />
               </Link>
             </Button>
@@ -340,8 +340,8 @@ export default function Landing() {
                       <ArrowLeft className="size-[18px]" />
                     </a>
                   ) : (
-                    <Link to={home?.primaryCtaHref ?? "/auth?mode=signup"}>
-                      {home?.primaryCtaLabel ?? "ساخت حساب کافی‌نت"}
+                    <Link to={home?.primaryCtaHref ?? "/auth"}>
+                      {home?.primaryCtaLabel ?? "دریافت حساب از مدیر"}
                       <ArrowLeft className="size-[18px]" />
                     </Link>
                   )}
@@ -364,7 +364,7 @@ export default function Landing() {
               >
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="size-3.5 text-primary" />
-                  ثبت‌نام امن با شماره موبایل
+                  دریافت حساب امن با شماره موبایل
                 </span>
                 <span className="hidden size-1 rounded-full bg-border sm:block" />
                 <span className="flex items-center gap-1">
@@ -705,7 +705,7 @@ export default function Landing() {
                 asChild
                 className="clay-primary mt-4 h-11 w-full rounded-2xl border-0 text-[12px] font-bold hover:brightness-105"
               >
-                <Link to="/auth?mode=signup">ساخت حساب کافی‌نت</Link>
+                <Link to="/auth">دریافت حساب از مدیر</Link>
               </Button>
               <p className="mt-2 text-center text-[10px] text-muted-foreground">
                 حساب واقعی با شماره موبایل؛ داده هر کافی‌نت مستقل است.
@@ -849,7 +849,7 @@ export default function Landing() {
                   size="lg"
                   className="clay-sm h-12 rounded-2xl border-0 px-5 text-[12.5px] font-bold text-primary hover:bg-transparent"
                 >
-                  <Link to="/auth?mode=signup">
+                  <Link to="/auth">
                     ساخت حساب کافینت
                     <ArrowLeft className="size-4" />
                   </Link>

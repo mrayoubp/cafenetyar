@@ -94,3 +94,26 @@ export function normalizeSearch(value: string) {
     .trim()
     .toLowerCase();
 }
+
+// Storage remains in whole tomans for compatibility with the existing ledger.
+// Convert explicitly at the form boundary; never relabel an unchanged amount.
+export const toRial = (toman: number) => toman * 10;
+export function rialInputToToman(value: string) {
+  const rial = inputNumber(value);
+  return Number.isSafeInteger(rial) && rial % 10 === 0 ? rial / 10 : NaN;
+}
+export function validRial(value: number, min = 0) {
+  return (
+    Number.isSafeInteger(value) &&
+    value >= min &&
+    value <= 10_000_000_000 &&
+    value % 10 === 0
+  );
+}
+export function stockLevel(quantity: number, low: number) {
+  const scale = Math.max(quantity, low * 3, 1);
+  return {
+    max: scale,
+    percent: Math.max(0, Math.min(100, (quantity / scale) * 100)),
+  };
+}

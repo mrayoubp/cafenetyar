@@ -1,3 +1,4 @@
+import { assertAdmission } from "./site-access.mjs";
 const LEGACY = "https://striped-cobra-115.convex.cloud";
 const MAX = 1_000_000_000,
   LIMIT = 1000,
@@ -169,8 +170,9 @@ export async function handleAccounting(
     if (!db) fail("دیتابیس حسابداری متصل نیست.", 503);
     if (!["GET", "POST"].includes(request.method))
       return json({ error: "روش درخواست مجاز نیست." }, 405);
-    const { c, legacy, remote } = await authenticated(request, transport),
-      cafe = c.cafe.id,
+    const { c, legacy, remote } = await authenticated(request, transport);
+    await assertAdmission(db, env, c);
+    const cafe = c.cafe.id,
       path = new URL(request.url).pathname;
     if (request.method === "GET" && path === "/api/accounting") {
       const [rows, catalog, movements, lines] = await Promise.all([
@@ -387,7 +389,20 @@ export async function handleAccounting(
           cafe,
           rid,
         );
-      if (prior) return json({ ok: true });
+      if (prior) {
+        const current = await one(
+          db,
+          "SELECT id,quantity,version FROM catalog_items WHERE id=(SELECT item_id FROM stock_movements WHERE id=?) AND cafe_id=?",
+          prior.id,
+          cafe,
+        );
+        return json({
+          ok: true,
+          itemId: current.id,
+          quantity: current.quantity,
+          version: current.version,
+        });
+      }
       const item = await one(
         db,
         "SELECT * FROM catalog_items WHERE id=? AND cafe_id=? AND archived=0",
@@ -440,11 +455,34 @@ export async function handleAccounting(
             cafe,
             rid,
           )
-        )
-          return json({ ok: true });
+        ) {
+          const current = await one(
+            db,
+            "SELECT quantity,version FROM catalog_items WHERE id=? AND cafe_id=?",
+            item.id,
+            cafe,
+          );
+          return json({
+            ok: true,
+            itemId: item.id,
+            quantity: current.quantity,
+            version: current.version,
+          });
+        }
         throw e;
       }
-      return json({ ok: true });
+      const current = await one(
+        db,
+        "SELECT quantity,version FROM catalog_items WHERE id=? AND cafe_id=?",
+        item.id,
+        cafe,
+      );
+      return json({
+        ok: true,
+        itemId: item.id,
+        quantity: current.quantity,
+        version: current.version,
+      });
     }
     if (path === "/api/accounting/entries") {
       const rid = requestId(body),

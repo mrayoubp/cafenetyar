@@ -1,3 +1,4 @@
+import {bearerAdmission,resolveLogin,rateLimit,manageSiteLogins} from './site-access.mjs';
 import {handleAccounting} from './accounting.mjs';
 import {bridge} from './bridge.mjs';
 import library from './library.json' with { type: 'json' };
@@ -35,6 +36,9 @@ export default {async fetch(request,env){try{
   if(Number(request.headers.get('content-length')||0)>1500000)fail('حجم درخواست زیاد است.',413);
  }
  let body={};if(request.method==='POST'){const raw=await request.text();if(raw.length>1500000)fail('حجم درخواست زیاد است.',413);try{body=JSON.parse(raw);}catch{fail('اطلاعات معتبر نیست.');}}
+ if(path==='/api/site-access'&&request.method==='GET')return json({ok:true,account:await bearerAdmission(request,env)});
+ if(path==='/api/login-name'&&request.method==='POST'){await rateLimit(db,'identifier:'+(request.headers.get('cf-connecting-ip')||'unknown'));return json({phone:await resolveLogin(db,env,body.identifier)});}
+ if(path==='/api/register')fail('ثبت‌نام عمومی بسته است؛ حساب را از مدیر دریافت کنید.',403);
  if(path==='/api/accounting'||path.startsWith('/api/accounting/'))return await handleAccounting(request,env,body);
  if(path==='/api/bridge'){const bridgeRequest=request.method==='POST'?new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify(body)}):request;return await bridge(bridgeRequest,db,(await contentRows(db)).filter(x=>x.published));}
  if(path==='/api/branding'&&request.method==='GET'){const row=await one(db,"SELECT value FROM settings WHERE id='site'");return json(row?JSON.parse(row.value):{});}
@@ -60,6 +64,7 @@ export default {async fetch(request,env){try{
   return json({ok:true},200,{'Set-Cookie':`kfy_session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`});
  }
  const u=await session(request,db);
+ if(path==='/api/site-accounts'){requireOwner(u);return await manageSiteLogins(request,env,body,u,(actor,action,id,detail)=>auditStatement(db,actor,action,id,detail));}
  if(path==='/api/me'&&request.method==='GET'){
   let security=await one(db,'SELECT enabled FROM mfa WHERE user_id=?',u.id);
   return json({user:{id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,permissions:u.permissions,cafe:u.cafe,subscription_end:u.subscription_end},mfaRequired:u.role==='owner'&&(!u.mfa_at||u.mfa_at<now()-1800000),mfaEnabled:!!security?.enabled,catalog:PERMISSIONS});

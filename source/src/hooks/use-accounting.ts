@@ -73,10 +73,35 @@ export function useAccounting(enabled: boolean) {
   const mutate = useCallback(
     async (path: string, body: unknown) => {
       const result = await api(path, body);
+      if (
+        path === "/stock" &&
+        typeof result.itemId === "string" &&
+        Number.isSafeInteger(result.quantity)
+      ) {
+        setState((previous) =>
+          previous.token === token && previous.data
+            ? {
+                ...previous,
+                data: {
+                  ...previous.data,
+                  catalog: previous.data.catalog.map((item) =>
+                    item.id === result.itemId
+                      ? {
+                          ...item,
+                          quantity: result.quantity,
+                          version: result.version,
+                        }
+                      : item,
+                  ),
+                },
+              }
+            : previous,
+        );
+      }
       await refresh();
       return result;
     },
-    [api, refresh],
+    [api, refresh, token],
   );
   return {
     data: state.token === token ? state.data : undefined,

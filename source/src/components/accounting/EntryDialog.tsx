@@ -45,7 +45,8 @@ import {
 } from "@/lib/accounting";
 import {
   inputNumber,
-  validMoney,
+  validRial,
+  toRial,
   normalizeSearch,
   type CatalogItem,
   type CreateEntry,
@@ -66,7 +67,7 @@ const draft = (item?: CatalogItem): DraftLine => ({
   itemId: item?.id || "",
   title: item?.title || "",
   quantity: "1",
-  price: item ? String(item.priceToman) : "",
+  price: item ? String(toRial(item.priceToman)) : "",
 });
 function ItemPicker({
   items,
@@ -164,7 +165,7 @@ function ItemPicker({
                       {x.kind === "product"
                         ? "موجودی " + faNumber(x.quantity) + " " + x.unit
                         : "خدمت"}{" "}
-                      · {faNumber(x.priceToman)} تومان
+                      · {faNumber(toRial(x.priceToman))} ریال
                     </small>
                   </span>
                   {value === x.id && <Check size={14} />}
@@ -230,7 +231,7 @@ export function EntryDialog({
     changeLine(key, {
       itemId: id,
       title: item?.title || "",
-      price: item ? String(item.priceToman) : "",
+      price: item ? String(toRial(item.priceToman)) : "",
     });
   };
   const changeDirection = (v: AccountingDirection) => {
@@ -252,8 +253,8 @@ export function EntryDialog({
       setError("یک عنوان روشن برای این سند بنویس.");
       return;
     }
-    if (!validMoney(total, 1)) {
-      setError("مبلغ نهایی باید بین ۱ و ۱٬۰۰۰٬۰۰۰٬۰۰۰ تومان باشد.");
+    if (!validRial(total, 10)) {
+      setError("مبلغ نهایی باید بین ۱۰ و ۱۰٬۰۰۰٬۰۰۰٬۰۰۰ ریال و مضرب ۱۰ باشد.");
       return;
     }
     if (usingItems) {
@@ -262,11 +263,11 @@ export function EntryDialog({
         return;
       }
       if (
-        (discount.trim() && !validMoney(inputNumber(discount))) ||
-        !validMoney(discountValue) ||
+        (discount.trim() && !validRial(inputNumber(discount))) ||
+        !validRial(discountValue) ||
         discountValue >= gross
       ) {
-        setError("تخفیف باید عدد صحیح و کمتر از جمع اقلام باشد.");
+        setError("تخفیف باید مضرب ۱۰ ریال و کمتر از جمع اقلام باشد.");
         return;
       }
       for (const l of lines) {
@@ -278,9 +279,9 @@ export function EntryDialog({
           !Number.isSafeInteger(q) ||
           q < 1 ||
           q > 10000000 ||
-          !validMoney(p)
+          !validRial(p)
         ) {
-          setError("نام، تعداد و قیمت همهٔ ردیف‌ها را کامل کن.");
+          setError("نام و تعداد را کامل و قیمت را به ریال و مضرب ۱۰ وارد کن.");
           return;
         }
       }
@@ -291,15 +292,15 @@ export function EntryDialog({
       direction,
       category,
       method,
-      amountToman: total,
+      amountToman: total / 10,
       note: note.trim() || undefined,
-      discountToman: usingItems ? discountValue : 0,
+      discountToman: usingItems ? discountValue / 10 : 0,
       lines: usingItems
         ? lines.map((l) => ({
             itemId: l.itemId || undefined,
             title: l.title.trim(),
             quantity: inputNumber(l.quantity),
-            unitPrice: inputNumber(l.price),
+            unitPrice: inputNumber(l.price) / 10,
           }))
         : [],
     });
@@ -527,7 +528,7 @@ export function EntryDialog({
                             }
                             placeholder="۰"
                           />
-                          <small>تومان</small>
+                          <small>ریال</small>
                         </div>
                         <div className="fin-line-total">
                           <span>جمع ردیف</span>
@@ -587,7 +588,7 @@ export function EntryDialog({
                             onChange={(e) => setDiscount(e.target.value)}
                             placeholder="۰"
                           />
-                          <small>تومان</small>
+                          <small>ریال</small>
                         </div>
                         <button
                           type="button"
@@ -621,12 +622,12 @@ export function EntryDialog({
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="۰"
                     />
-                    <span>تومان</span>
+                    <span>ریال</span>
                   </div>
                   <p>
-                    {validMoney(total, 1)
-                      ? faNumber(total) + " تومان"
-                      : "مبلغ را به تومان وارد کن"}
+                    {validRial(total, 10)
+                      ? faNumber(total) + " ریال"
+                      : "مبلغ را به ریال وارد کن"}
                   </p>
                 </div>
               )}
@@ -742,7 +743,7 @@ export function EntryDialog({
                 </div>
                 <div className="fin-bill-final">
                   <span>مبلغ نهایی</span>
-                  <Money value={Number.isFinite(total) ? total : 0} />
+                  <Money value={Number.isFinite(total) ? total / 10 : 0} />
                 </div>
                 <div className="fin-bill-payment">
                   {method === "نقدی" ? (
@@ -774,7 +775,7 @@ export function EntryDialog({
             <div className="fin-entry-footer-row">
               <div className="fin-entry-footer-total">
                 <span>مبلغ قابل ثبت</span>
-                <Money value={Number.isFinite(total) ? total : 0} />
+                <Money value={Number.isFinite(total) ? total / 10 : 0} />
               </div>
               <div className="fin-entry-footer-actions">
                 <button

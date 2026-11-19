@@ -53,6 +53,7 @@ import { faNumber } from "@/lib/format";
 import { errorMessage } from "@/lib/auth";
 import {
   normalizeSearch,
+  toRial,
   type CatalogItem,
   type CreateEntry,
   type LedgerItem,
@@ -228,7 +229,7 @@ export default function Accounting() {
         "نوع",
         "دسته",
         "روش پرداخت",
-        "مبلغ (تومان)",
+        "مبلغ (ریال)",
         "تخفیف",
         "تاریخ",
         "ساعت",
@@ -243,7 +244,7 @@ export default function Accounting() {
         x.direction === "income" ? "درآمد" : "هزینه",
         x.category,
         x.method,
-        x.amountToman,
+        toRial(x.amountToman),
         x.discountToman || 0,
         financeDate(x.occurredAt),
         financeTime(x.occurredAt),
@@ -423,13 +424,16 @@ export default function Accounting() {
                 fontFamily: "Vazirmatn",
               }}
               tickFormatter={(v) =>
-                faNumber(
-                  v >= 1000000 ? v / 1000000 : v >= 1000 ? v / 1000 : v,
-                ) + (v >= 1000000 ? "م" : v >= 1000 ? "ه" : "")
+                new Intl.NumberFormat("fa-IR", { notation: "compact" }).format(
+                  toRial(Number(v)),
+                )
               }
             />
             <Tooltip
-              formatter={(v, name) => [faNumber(Number(v)) + " تومان", name]}
+              formatter={(v, name) => [
+                faNumber(toRial(Number(v))) + " ریال",
+                name,
+              ]}
               contentStyle={{
                 background: "var(--fin-paper)",
                 border: "1px solid var(--fin-border)",
@@ -464,7 +468,7 @@ export default function Accounting() {
         </ResponsiveContainer>
       </div>
       <div className="fin-chart-footer">
-        <span>مبالغ به تومان · تراکنش‌های فعال</span>
+        <span>مبالغ به ریال · تراکنش‌های فعال</span>
         <span>
           {totals.count
             ? faNumber(totals.count) + " سند در بازهٔ انتخابی"
@@ -489,7 +493,7 @@ export default function Accounting() {
               <div>
                 <span>{r.name}</span>
                 <strong>
-                  {faNumber(r.total)} <small>تومان</small>
+                  {faNumber(toRial(r.total))} <small>ریال</small>
                 </strong>
               </div>
               <div className="fin-category-bar">
@@ -505,7 +509,8 @@ export default function Accounting() {
                 />
               </div>
               <small>
-                درآمد {faNumber(r.income)} · هزینه {faNumber(r.expense)}
+                درآمد {faNumber(toRial(r.income))} · هزینه{" "}
+                {faNumber(toRial(r.expense))}
               </small>
             </div>
           ))}
@@ -602,7 +607,7 @@ export default function Accounting() {
             ) : (
               <span className="fin-money">
                 <b>—</b>
-                <small>تومان</small>
+                <small>ریال</small>
               </span>
             )}
             <p className="fin-balance-caption">
@@ -985,7 +990,7 @@ export default function Accounting() {
         <p className="fin-page-note">
           <ShieldCheck size={13} />
           دفتر اختصاصی {context?.cafe?.name || "کافی‌نت شما"} · نمایش آخرین{" "}
-          {faNumber(data?.summary.limitedTo || 1000)} سند · مبالغ به تومان
+          {faNumber(data?.summary.limitedTo || 1000)} سند · مبالغ به ریال
         </p>
         {dialog && (
           <EntryDialog
