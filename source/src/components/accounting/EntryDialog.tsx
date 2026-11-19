@@ -2,39 +2,57 @@ import { useRef, useState, type FormEvent } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  BadgePercent,
   Check,
-  ChevronDown,
+  ChevronsUpDown,
+  Coins,
+  CreditCard,
+  FileText,
   Loader2,
+  Minus,
   Package,
   Plus,
   ReceiptText,
+  Sparkles,
   Trash2,
   Wallet,
+  X,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   ACCOUNTING_CATEGORIES,
   ACCOUNTING_PAYMENT_METHODS,
   type AccountingDirection,
 } from "@/lib/accounting";
-import { faNumber, faToman } from "@/lib/format";
 import {
   inputNumber,
   validMoney,
+  normalizeSearch,
   type CatalogItem,
   type CreateEntry,
 } from "@/lib/inventory";
-import { cn } from "@/lib/utils";
+import { faNumber } from "@/lib/format";
+import { financeDate } from "@/lib/finance-view";
+import { Money } from "./FinanceUI";
 
 type DraftLine = {
   key: string;
@@ -43,14 +61,122 @@ type DraftLine = {
   quantity: string;
   price: string;
 };
-const line = (item?: CatalogItem): DraftLine => ({
+const draft = (item?: CatalogItem): DraftLine => ({
   key: crypto.randomUUID(),
   itemId: item?.id || "",
   title: item?.title || "",
   quantity: "1",
   price: item ? String(item.priceToman) : "",
 });
-const inputClass = "h-11 rounded-xl border-border/60 bg-background/70 text-sm";
+function ItemPicker({
+  items,
+  value,
+  onChange,
+  index,
+}: {
+  items: CatalogItem[];
+  value: string;
+  onChange: (id: string) => void;
+  index: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = items.find((x) => x.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="fin-item-picker"
+          role="combobox"
+          aria-expanded={open}
+          aria-label={"انتخاب کالا یا خدمت ردیف " + index}
+        >
+          <span
+            className={
+              "fin-line-item-symbol " +
+              (current?.kind === "service" ? "service" : "")
+            }
+          >
+            {current?.kind === "service" ? (
+              <Sparkles size={15} />
+            ) : (
+              <Package size={15} />
+            )}
+          </span>
+          <span>
+            {current?.title || "انتخاب کالا / خدمت"}
+            <small>
+              {current ? "هر " + current.unit : "یا یک ردیف دلخواه ثبت کن"}
+            </small>
+          </span>
+          <ChevronsUpDown size={13} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="finance-modal fin-item-popover" align="start">
+        <Command
+          filter={(v, q) =>
+            normalizeSearch(v).includes(normalizeSearch(q)) ? 1 : 0
+          }
+        >
+          <CommandInput placeholder="نام یا کد آیتم را بنویس…" />
+          <CommandList>
+            <CommandEmpty>آیتمی پیدا نشد.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="ردیف دلخواه کار سفارشی بدون تعریف"
+                onSelect={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+              >
+                <Plus size={15} />
+                <span>
+                  ردیف دلخواه<small>نام و قیمت را خودت بنویس</small>
+                </span>
+              </CommandItem>
+              {items.map((x) => (
+                <CommandItem
+                  key={x.id}
+                  value={x.title + " " + x.sku + " " + x.id}
+                  disabled={
+                    x.kind === "product" && x.quantity === 0 && x.id !== value
+                  }
+                  onSelect={() => {
+                    onChange(x.id);
+                    setOpen(false);
+                  }}
+                >
+                  <span
+                    className={
+                      "fin-line-item-symbol " +
+                      (x.kind === "service" ? "service" : "")
+                    }
+                  >
+                    {x.kind === "service" ? (
+                      <Sparkles size={14} />
+                    ) : (
+                      <Package size={14} />
+                    )}
+                  </span>
+                  <span>
+                    {x.title}
+                    <small>
+                      {x.kind === "product"
+                        ? "موجودی " + faNumber(x.quantity) + " " + x.unit
+                        : "خدمت"}{" "}
+                      · {faNumber(x.priceToman)} تومان
+                    </small>
+                  </span>
+                  {value === x.id && <Check size={14} />}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 export function EntryDialog({
   catalog,
   initialItem,
@@ -71,32 +197,34 @@ export function EntryDialog({
       useState<AccountingDirection>(initialDirection),
     [mode, setMode] = useState<"manual" | "items">(
       initialItem || active.length ? "items" : "manual",
-    );
-  const [title, setTitle] = useState(
+    ),
+    [title, setTitle] = useState(
       initialItem ? "فروش " + initialItem.title : "",
     ),
     [amount, setAmount] = useState(""),
     [category, setCategory] = useState<string>(
       initialDirection === "expense" ? "سایر" : ACCOUNTING_CATEGORIES[0],
-    );
-  const [method, setMethod] = useState<string>(ACCOUNTING_PAYMENT_METHODS[0]),
+    ),
+    [method, setMethod] = useState<string>(ACCOUNTING_PAYMENT_METHODS[0]),
     [note, setNote] = useState(""),
     [discount, setDiscount] = useState(""),
-    [lines, setLines] = useState<DraftLine[]>([line(initialItem)]),
+    [showDiscount, setShowDiscount] = useState(false),
+    [lines, setLines] = useState<DraftLine[]>(() => [draft(initialItem)]),
     [error, setError] = useState("");
-  const request = useRef(crypto.randomUUID());
-  const usingItems = direction === "income" && mode === "items";
-  const gross = lines.reduce(
+  const request = useRef(crypto.randomUUID()),
+    usingItems = direction === "income" && mode === "items",
+    gross = lines.reduce(
       (n, l) =>
         n + (inputNumber(l.quantity) || 0) * (inputNumber(l.price) || 0),
       0,
     ),
-    discountValue = inputNumber(discount) || 0;
-  const total = usingItems ? gross - discountValue : inputNumber(amount) || 0;
-  const changeLine = (key: string, patch: Partial<DraftLine>) =>
+    discountValue = inputNumber(discount) || 0,
+    total = usingItems ? gross - discountValue : inputNumber(amount) || 0;
+  const changeLine = (key: string, patch: Partial<DraftLine>) => {
     setLines((rows) =>
       rows.map((l) => (l.key === key ? { ...l, ...patch } : l)),
     );
+  };
   const choose = (key: string, id: string) => {
     const item = active.find((x) => x.id === id);
     changeLine(key, {
@@ -105,7 +233,15 @@ export function EntryDialog({
       price: item ? String(item.priceToman) : "",
     });
   };
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
+  const changeDirection = (v: AccountingDirection) => {
+    setDirection(v);
+    if (v === "expense" && category === ACCOUNTING_CATEGORIES[0])
+      setCategory("سایر");
+    else if (v === "income" && category === "سایر")
+      setCategory(ACCOUNTING_CATEGORIES[0]);
+    setError("");
+  };
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
     setError("");
@@ -113,7 +249,7 @@ export function EntryDialog({
       title.trim() ||
       (usingItems && lines.length === 1 ? "فروش " + lines[0].title : "");
     if (entryTitle.length < 3) {
-      setError("عنوان کار یا هزینه را وارد کنید.");
+      setError("یک عنوان روشن برای این سند بنویس.");
       return;
     }
     if (!validMoney(total, 1)) {
@@ -122,7 +258,7 @@ export function EntryDialog({
     }
     if (usingItems) {
       if (!lines.length) {
-        setError("حداقل یک ردیف کالا یا خدمت اضافه کنید.");
+        setError("حداقل یک کالا، خدمت یا ردیف دلخواه اضافه کن.");
         return;
       }
       if (
@@ -130,26 +266,26 @@ export function EntryDialog({
         !validMoney(discountValue) ||
         discountValue >= gross
       ) {
-        setError("تخفیف باید کمتر از جمع اقلام باشد.");
+        setError("تخفیف باید عدد صحیح و کمتر از جمع اقلام باشد.");
         return;
       }
       for (const l of lines) {
-        const qty = inputNumber(l.quantity),
-          price = inputNumber(l.price);
+        const q = inputNumber(l.quantity),
+          p = inputNumber(l.price);
         if (
           !l.title.trim() ||
           !l.price.trim() ||
-          !Number.isSafeInteger(qty) ||
-          qty < 1 ||
-          qty > 10000000 ||
-          !validMoney(price)
+          !Number.isSafeInteger(q) ||
+          q < 1 ||
+          q > 10000000 ||
+          !validMoney(p)
         ) {
-          setError("نام، تعداد و قیمت همهٔ ردیف‌ها را کامل کنید.");
+          setError("نام، تعداد و قیمت همهٔ ردیف‌ها را کامل کن.");
           return;
         }
       }
     }
-    await onSubmit({
+    const saved = await onSubmit({
       requestId: request.current,
       title: entryTitle,
       direction,
@@ -167,16 +303,18 @@ export function EntryDialog({
           }))
         : [],
     });
+    if (!saved)
+      setError("سند ذخیره نشد. پیام خطا را بررسی کن و دوباره تلاش کن.");
   };
   return (
     <Dialog
       open
-      onOpenChange={(open) => {
-        if (!open && !busy) onClose();
+      onOpenChange={(v) => {
+        if (!v && !busy) onClose();
       }}
     >
       <DialogContent
-        className="clay flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-[30px] border-0 p-0 sm:max-w-2xl [&>[data-slot=dialog-close]]:left-4 [&>[data-slot=dialog-close]]:right-auto"
+        className="finance-modal fin-entry-dialog"
         onEscapeKeyDown={(e) => {
           if (busy) e.preventDefault();
         }}
@@ -184,428 +322,489 @@ export function EntryDialog({
           if (busy) e.preventDefault();
         }}
       >
-        <DialogHeader className="border-b border-border/50 px-5 py-5 pe-12 text-start sm:px-6 sm:pe-12 sm:text-start">
-          <DialogTitle className="flex items-center gap-2 text-lg font-extrabold">
+        <DialogHeader className="fin-dialog-header">
+          <div className="fin-dialog-title-row">
             <span
-              className={cn(
-                "grid size-10 place-items-center rounded-2xl",
-                direction === "expense"
-                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-300"
-                  : "bg-primary/10 text-primary",
-              )}
+              className={
+                "fin-dialog-icon " + (direction === "expense" ? "expense" : "")
+              }
             >
               {direction === "expense" ? (
-                <Wallet className="size-5" />
+                <Wallet size={22} />
               ) : (
-                <ReceiptText className="size-5" />
+                <ReceiptText size={22} />
               )}
             </span>
-            {direction === "expense" ? "ثبت هزینهٔ کافی‌نت" : "ثبت کار و فروش"}
-          </DialogTitle>
-          <DialogDescription className="mt-1 text-xs leading-6">
-            {direction === "expense"
-              ? "پرداخت‌ها را با عنوان، دسته و روش پرداخت ثبت کنید."
-              : "کالا و خدمت انتخاب کنید یا مبلغ و ردیف دلخواه خودتان را بنویسید."}
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          onSubmit={submit}
-          className="flex min-h-0 flex-1 flex-col"
-          onChange={() => {
-            request.current = crypto.randomUUID();
-          }}
-        >
-          <div className="space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
-            <div className="grid grid-cols-2 gap-2">
-              {(
-                [
-                  { key: "income", label: "درآمد / فروش", icon: ArrowDownLeft },
-                  { key: "expense", label: "ثبت هزینه", icon: ArrowUpRight },
-                ] as const
-              ).map((x) => (
-                <button
-                  key={x.key}
-                  type="button"
-                  onClick={() => {
-                    setDirection(x.key);
-                    request.current = crypto.randomUUID();
-                    setError("");
-                  }}
-                  className={cn(
-                    "flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm font-bold transition-colors",
-                    direction === x.key
-                      ? x.key === "income"
-                        ? "border-primary/40 bg-primary/10 text-primary"
-                        : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
-                      : "border-border/60 text-muted-foreground hover:bg-muted/40",
-                  )}
-                >
-                  <x.icon className="size-4" />
-                  {x.label}
-                  {direction === x.key && (
-                    <Check className="ms-auto size-3.5" />
-                  )}
-                </button>
-              ))}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="entry-title" className="text-xs">
+            <div>
+              <DialogTitle>
                 {direction === "expense"
-                  ? "بابت چه چیزی پرداخت کردید؟"
-                  : "عنوان کار یا فروش"}
-              </Label>
-              <Input
-                id="entry-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={120}
-                placeholder={
-                  direction === "expense"
-                    ? "مثلاً خرید کاغذ، قبض اینترنت یا اجاره"
-                    : "مثلاً خدمات چاپ سفارش آقای رضایی"
-                }
-                className={inputClass}
-              />
+                  ? "یک هزینهٔ تازه ثبت کن"
+                  : "ثبت فروش و خدمات"}
+              </DialogTitle>
+              <DialogDescription>
+                {direction === "expense"
+                  ? "پرداخت‌های کسب‌وکار را روشن و قابل پیگیری نگه دار."
+                  : "اقلام را انتخاب کن، قیمت را تنظیم کن و سند را ثبت کن."}
+              </DialogDescription>
             </div>
-            {direction === "income" && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  شیوهٔ ثبت:
-                </span>
-                {(
-                  [
-                    { key: "items", label: "کالا و خدمت" },
-                    { key: "manual", label: "مبلغ دلخواه" },
-                  ] as const
-                ).map((x) => (
-                  <button
-                    key={x.key}
-                    type="button"
-                    onClick={() => {
-                      setMode(x.key);
-                      request.current = crypto.randomUUID();
-                    }}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-semibold",
-                      mode === x.key
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/70 text-muted-foreground",
-                    )}
-                  >
-                    {x.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {usingItems ? (
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="flex items-center gap-2 text-sm font-bold">
-                    <Package className="size-4 text-primary" />
-                    اقلام کار
-                  </h3>
-                  <span className="text-[10px] text-muted-foreground">
-                    قیمت هر ردیف قابل تغییر است
+          </div>
+          <span className="fin-tag neutral fin-draft-tag">پیش‌نویس</span>
+        </DialogHeader>
+        <form onSubmit={submit} className="fin-entry-form">
+          <div className="fin-entry-layout">
+            <fieldset disabled={busy} className="fin-entry-editor">
+              <div className="fin-entry-types">
+                <button
+                  type="button"
+                  className={direction === "income" ? "active income" : ""}
+                  onClick={() => changeDirection("income")}
+                >
+                  <ArrowDownLeft size={17} />
+                  <span>
+                    درآمد و فروش<small>کار یا دریافت مشتری</small>
                   </span>
+                  {direction === "income" && <Check size={14} />}
+                </button>
+                <button
+                  type="button"
+                  className={direction === "expense" ? "active expense" : ""}
+                  onClick={() => changeDirection("expense")}
+                >
+                  <ArrowUpRight size={17} />
+                  <span>
+                    ثبت هزینه<small>خرید، قبض و پرداخت‌ها</small>
+                  </span>
+                  {direction === "expense" && <Check size={14} />}
+                </button>
+              </div>
+              <label className="fin-field">
+                {direction === "expense"
+                  ? "بابت چه چیزی پرداخت کردی؟"
+                  : "عنوان سند یا نام کار"}
+                <input
+                  className="fin-input"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={120}
+                  placeholder={
+                    direction === "expense"
+                      ? "مثلاً خرید کاغذ یا پرداخت اینترنت"
+                      : "مثلاً خدمات چاپ سفارش آقای رضایی"
+                  }
+                />
+              </label>
+              {direction === "income" && (
+                <div className="fin-entry-mode">
+                  <span>شیوهٔ ثبت</span>
+                  <div className="fin-segmented">
+                    {(
+                      [
+                        { key: "items", label: "کالا و خدمت" },
+                        { key: "manual", label: "مبلغ دلخواه" },
+                      ] as const
+                    ).map((x) => (
+                      <button
+                        key={x.key}
+                        type="button"
+                        className={mode === x.key ? "active" : ""}
+                        onClick={() => {
+                          setMode(x.key);
+                        }}
+                      >
+                        {x.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                {lines.map((l, index) => {
-                  const product = active.find((x) => x.id === l.itemId);
-                  return (
-                    <div
-                      key={l.key}
-                      className="rounded-[22px] border border-border/60 bg-background/40 p-3 sm:p-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-                          {faNumber(index + 1)}
-                        </span>
-                        <div className="relative min-w-0 flex-1">
-                          <select
-                            aria-label={
-                              "انتخاب کالا یا خدمت ردیف " + (index + 1)
-                            }
+              )}
+              {usingItems ? (
+                <div className="fin-lines-editor">
+                  <div className="fin-lines-title">
+                    <h3>
+                      <Package size={15} />
+                      اقلام این فروش
+                    </h3>
+                    <span>{faNumber(lines.length)} ردیف</span>
+                  </div>
+                  <div className="fin-line-headings">
+                    <span>شرح کالا / خدمت</span>
+                    <span>تعداد</span>
+                    <span>قیمت واحد</span>
+                    <span>جمع</span>
+                    <span />
+                  </div>
+                  {lines.map((l, i) => {
+                    const product = active.find((x) => x.id === l.itemId),
+                      lineTotal =
+                        (inputNumber(l.quantity) || 0) *
+                        (inputNumber(l.price) || 0);
+                    return (
+                      <div className="fin-invoice-line" key={l.key}>
+                        <div className="fin-line-product">
+                          <ItemPicker
+                            items={active}
                             value={l.itemId}
-                            onChange={(e) => choose(l.key, e.target.value)}
-                            className="h-10 w-full appearance-none rounded-xl border border-border/60 bg-background pe-8 ps-3 text-xs"
-                          >
-                            <option value="">
-                              ردیف دلخواه (بدون تعریف قبلی)
-                            </option>
-                            {active.map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {item.title} ·{" "}
-                                {item.kind === "product"
-                                  ? faNumber(item.quantity) + " " + item.unit
-                                  : "خدمت"}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="pointer-events-none absolute end-2 top-3 size-4 text-muted-foreground" />
+                            index={i + 1}
+                            onChange={(id) => choose(l.key, id)}
+                          />
+                          {!l.itemId && (
+                            <input
+                              className="fin-input fin-custom-line"
+                              aria-label={"نام ردیف " + (i + 1)}
+                              maxLength={120}
+                              value={l.title}
+                              onChange={(e) =>
+                                changeLine(l.key, { title: e.target.value })
+                              }
+                              placeholder="نام کالای دلخواه یا کار سفارشی"
+                            />
+                          )}
+                          {product?.kind === "product" && (
+                            <small
+                              className={
+                                product.quantity <= product.lowStock
+                                  ? "fin-stock-warning"
+                                  : ""
+                              }
+                            >
+                              موجودی: {faNumber(product.quantity)}{" "}
+                              {product.unit}
+                            </small>
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          aria-label={"حذف ردیف " + (index + 1)}
-                          disabled={lines.length === 1}
-                          onClick={() => {
-                            setLines((rows) =>
-                              rows.filter((x) => x.key !== l.key),
-                            );
-                            request.current = crypto.randomUUID();
-                          }}
-                          className="rounded-xl p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
-                      {!l.itemId && (
-                        <Input
-                          aria-label={"نام ردیف " + (index + 1)}
-                          value={l.title}
-                          onChange={(e) =>
-                            changeLine(l.key, { title: e.target.value })
-                          }
-                          placeholder="نام کالا یا کار دلخواه؛ مثلاً ثبت‌نام اینترنتی"
-                          maxLength={120}
-                          className={cn(inputClass, "mt-3")}
-                        />
-                      )}
-                      <div className="mt-3 grid grid-cols-[0.7fr_1.3fr] gap-3">
-                        <div className="space-y-1.5">
-                          <Label
-                            htmlFor={"qty-" + l.key}
-                            className="text-[11px]"
+                        <div className="fin-line-qty">
+                          <button
+                            type="button"
+                            aria-label={"کاهش تعداد ردیف " + (i + 1)}
+                            onClick={() =>
+                              changeLine(l.key, {
+                                quantity: String(
+                                  Math.max(
+                                    1,
+                                    (inputNumber(l.quantity) || 1) - 1,
+                                  ),
+                                ),
+                              })
+                            }
                           >
-                            تعداد {product ? "(" + product.unit + ")" : ""}
-                          </Label>
-                          <Input
-                            id={"qty-" + l.key}
+                            <Minus size={11} />
+                          </button>
+                          <input
+                            aria-label={"تعداد ردیف " + (i + 1)}
                             inputMode="numeric"
                             value={l.quantity}
                             onChange={(e) =>
                               changeLine(l.key, { quantity: e.target.value })
                             }
-                            className={inputClass}
                           />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label
-                            htmlFor={"price-" + l.key}
-                            className="text-[11px]"
+                          <button
+                            type="button"
+                            aria-label={"افزایش تعداد ردیف " + (i + 1)}
+                            onClick={() =>
+                              changeLine(l.key, {
+                                quantity: String(
+                                  Math.max(
+                                    1,
+                                    Math.min(
+                                      10000000,
+                                      (inputNumber(l.quantity) || 0) + 1,
+                                    ),
+                                  ),
+                                ),
+                              })
+                            }
                           >
-                            قیمت واحد (تومان)
-                          </Label>
-                          <Input
-                            id={"price-" + l.key}
+                            <Plus size={11} />
+                          </button>
+                        </div>
+                        <div className="fin-line-price">
+                          <input
+                            aria-label={"قیمت واحد ردیف " + (i + 1)}
                             inputMode="numeric"
                             value={l.price}
                             onChange={(e) =>
                               changeLine(l.key, { price: e.target.value })
                             }
-                            placeholder="قیمت دلخواه"
-                            className={inputClass}
+                            placeholder="۰"
                           />
+                          <small>تومان</small>
                         </div>
+                        <div className="fin-line-total">
+                          <span>جمع ردیف</span>
+                          <b>
+                            {Number.isFinite(lineTotal)
+                              ? faNumber(lineTotal)
+                              : "—"}
+                          </b>
+                        </div>
+                        <button
+                          type="button"
+                          className="fin-delete-line"
+                          aria-label={"حذف ردیف " + (i + 1)}
+                          disabled={lines.length === 1}
+                          onClick={() => {
+                            setLines((rows) =>
+                              rows.filter((x) => x.key !== l.key),
+                            );
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                        <span className="text-muted-foreground">
-                          {product?.kind === "product"
-                            ? "موجودی: " +
-                              faNumber(product.quantity) +
-                              " " +
-                              product.unit
-                            : "این ردیف موجودی انبار را تغییر نمی‌دهد."}
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="fin-add-line"
+                    disabled={lines.length >= 40}
+                    onClick={() => {
+                      setLines((rows) => [...rows, draft()]);
+                    }}
+                  >
+                    <Plus size={15} />
+                    افزودن یک ردیف دیگر
+                  </button>
+                  <div className="fin-discount-row">
+                    {!showDiscount ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowDiscount(true)}
+                      >
+                        <BadgePercent size={15} />
+                        افزودن تخفیف
+                      </button>
+                    ) : (
+                      <>
+                        <label htmlFor="finance-discount">
+                          <BadgePercent size={15} />
+                          تخفیف کل
+                        </label>
+                        <div className="fin-discount-input">
+                          <input
+                            id="finance-discount"
+                            inputMode="numeric"
+                            value={discount}
+                            onChange={(e) => setDiscount(e.target.value)}
+                            placeholder="۰"
+                          />
+                          <small>تومان</small>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="حذف تخفیف"
+                          onClick={() => {
+                            setShowDiscount(false);
+                            setDiscount("");
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className={
+                    "fin-amount-editor " +
+                    (direction === "expense" ? "expense" : "")
+                  }
+                >
+                  <label htmlFor="finance-entry-amount">
+                    مبلغ {direction === "expense" ? "پرداخت" : "دریافت"}
+                  </label>
+                  <div>
+                    <input
+                      id="finance-entry-amount"
+                      inputMode="numeric"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="۰"
+                    />
+                    <span>تومان</span>
+                  </div>
+                  <p>
+                    {validMoney(total, 1)
+                      ? faNumber(total) + " تومان"
+                      : "مبلغ را به تومان وارد کن"}
+                  </p>
+                </div>
+              )}
+              <div className="fin-entry-section">
+                <h3>
+                  <FileText size={15} />
+                  اطلاعات پرداخت
+                </h3>
+                <div className="fin-field-grid">
+                  <label className="fin-field">
+                    دسته‌بندی
+                    <select
+                      className="fin-input"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                    >
+                      {ACCOUNTING_CATEGORIES.map((x) => (
+                        <option key={x}>{x}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="fin-field">
+                    روش پرداخت
+                    <select
+                      className="fin-input"
+                      value={method}
+                      onChange={(e) => setMethod(e.target.value)}
+                    >
+                      {ACCOUNTING_PAYMENT_METHODS.map((x) => (
+                        <option key={x}>{x}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                {direction === "expense" && (
+                  <div className="fin-category-shortcuts">
+                    {["تجهیزات", "قبوض", "اجاره", "حقوق و دستمزد"].map((x) => (
+                      <button
+                        key={x}
+                        type="button"
+                        className={category === x ? "active" : ""}
+                        onClick={() => {
+                          setCategory(x);
+                        }}
+                      >
+                        {x}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <label className="fin-field">
+                  یادداشت <small>نام مشتری، شماره رسید یا توضیح بیشتر</small>
+                  <textarea
+                    className="fin-input fin-textarea"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    maxLength={500}
+                    placeholder="جزئیات این سند را اینجا بنویس…"
+                  />
+                </label>
+              </div>
+            </fieldset>
+            <aside className="fin-bill-preview">
+              <div className="fin-bill-paper">
+                <div className="fin-bill-heading">
+                  <span>
+                    <ReceiptText size={24} />
+                  </span>
+                  <h3>
+                    {direction === "income"
+                      ? "پیش‌نمایش فروش"
+                      : "پیش‌نمایش هزینه"}
+                  </h3>
+                  <p>{financeDate(Date.now())}</p>
+                </div>
+                <div className="fin-bill-title">{title || "عنوان سند شما"}</div>
+                <div className="fin-bill-lines">
+                  {usingItems ? (
+                    lines.map((l, i) => (
+                      <div key={l.key}>
+                        <span>
+                          {l.title || "ردیف " + faNumber(i + 1)}
+                          <small>
+                            {faNumber(inputNumber(l.quantity) || 0)} ×{" "}
+                            {faNumber(inputNumber(l.price) || 0)}
+                          </small>
                         </span>
-                        <strong>
-                          {faToman(
+                        <b>
+                          {faNumber(
                             (inputNumber(l.quantity) || 0) *
                               (inputNumber(l.price) || 0),
                           )}
-                        </strong>
+                        </b>
                       </div>
+                    ))
+                  ) : (
+                    <div>
+                      <span>{category}</span>
+                      <b>{faNumber(total)}</b>
                     </div>
-                  );
-                })}
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={lines.length >= 40}
-                  onClick={() => {
-                    setLines((rows) => [...rows, line()]);
-                    request.current = crypto.randomUUID();
-                  }}
-                  className="h-10 w-full rounded-xl border-dashed text-xs"
-                >
-                  <Plus className="size-4" />
-                  افزودن کالا یا خدمت دیگر
-                </Button>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="entry-discount" className="text-xs">
-                    تخفیف کل (تومان)
-                  </Label>
-                  <Input
-                    id="entry-discount"
-                    inputMode="numeric"
-                    value={discount}
-                    onChange={(e) => setDiscount(e.target.value)}
-                    placeholder="۰"
-                    className={cn(inputClass, "w-40")}
-                  />
+                  )}
                 </div>
-              </section>
-            ) : (
-              <div
-                className={cn(
-                  "rounded-[24px] border p-4 sm:p-5",
-                  direction === "expense"
-                    ? "border-rose-500/15 bg-rose-500/[0.04]"
-                    : "border-primary/15 bg-primary/[0.04]",
-                )}
-              >
-                <Label htmlFor="entry-amount" className="text-xs">
-                  مبلغ {direction === "expense" ? "هزینه" : "درآمد"} (تومان)
-                </Label>
-                <Input
-                  id="entry-amount"
-                  inputMode="numeric"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="۰"
-                  className="mt-2 h-16 border-0 bg-transparent px-0 text-center text-3xl font-extrabold shadow-none focus-visible:ring-0"
-                />
-                <p className="text-center text-xs text-muted-foreground">
-                  {validMoney(total, 1)
-                    ? faToman(total)
-                    : "مبلغ را به تومان وارد کنید"}
-                </p>
+                <div className="fin-bill-calculations">
+                  <p>
+                    جمع مبلغ <b>{faNumber(usingItems ? gross : total)}</b>
+                  </p>
+                  {usingItems && discountValue > 0 && (
+                    <p>
+                      تخفیف{" "}
+                      <b className="fin-red">−{faNumber(discountValue)}</b>
+                    </p>
+                  )}
+                </div>
+                <div className="fin-bill-final">
+                  <span>مبلغ نهایی</span>
+                  <Money value={Number.isFinite(total) ? total : 0} />
+                </div>
+                <div className="fin-bill-payment">
+                  {method === "نقدی" ? (
+                    <Coins size={15} />
+                  ) : method === "کارت به کارت" ? (
+                    <CreditCard size={15} />
+                  ) : (
+                    <Wallet size={15} />
+                  )}
+                  <span>{method}</span>
+                  <span className="fin-tag neutral">
+                    {direction === "income" ? "دریافتی" : "پرداختی"}
+                  </span>
+                </div>
               </div>
-            )}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="entry-category" className="text-xs">
-                  دسته‌بندی
-                </Label>
-                <select
-                  id="entry-category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={cn(inputClass, "w-full px-3")}
-                >
-                  {ACCOUNTING_CATEGORIES.map((x) => (
-                    <option key={x} value={x}>
-                      {x}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="entry-method" className="text-xs">
-                  روش پرداخت
-                </Label>
-                <select
-                  id="entry-method"
-                  value={method}
-                  onChange={(e) => setMethod(e.target.value)}
-                  className={cn(inputClass, "w-full px-3")}
-                >
-                  {ACCOUNTING_PAYMENT_METHODS.map((x) => (
-                    <option key={x} value={x}>
-                      {x}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {direction === "expense" && (
-              <div className="flex flex-wrap gap-2">
-                {["تجهیزات", "قبوض", "اجاره", "حقوق و دستمزد"].map((x) => (
-                  <button
-                    key={x}
-                    type="button"
-                    onClick={() => {
-                      setCategory(x);
-                      request.current = crypto.randomUUID();
-                    }}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-[11px]",
-                      category === x
-                        ? "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
-                        : "border-border/60 text-muted-foreground",
-                    )}
-                  >
-                    {x}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="entry-note" className="text-xs">
-                توضیح یا نام مشتری (اختیاری)
-              </Label>
-              <Textarea
-                id="entry-note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                maxLength={500}
-                placeholder="جزئیات کار، شماره رسید یا توضیح پرداخت…"
-                className="min-h-20 resize-y rounded-2xl bg-background/50 text-sm"
-              />
-            </div>
+              <p className="fin-bill-note">
+                {usingItems
+                  ? "با ثبت سند، موجودی اقلام کالایی همین فروش کم می‌شود."
+                  : "بعد از ثبت، سند در دفتر مالی قابل مشاهده و چاپ است."}
+              </p>
+            </aside>
+          </div>
+          <footer className="fin-entry-footer">
             {error && (
-              <p
-                role="alert"
-                className="rounded-2xl bg-destructive/10 p-3 text-xs leading-6 text-destructive"
-              >
+              <p role="alert" className="fin-form-error">
                 {error}
               </p>
             )}
-          </div>
-          <footer className="shrink-0 space-y-3 border-t border-border/60 bg-background/70 px-5 py-4 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-medium text-muted-foreground">
-                {usingItems ? "مبلغ نهایی پس از تخفیف" : "مبلغ قابل ثبت"}
-              </span>
-              <strong
-                className={cn(
-                  "text-lg font-extrabold",
-                  direction === "expense"
-                    ? "text-rose-700 dark:text-rose-300"
-                    : "text-primary",
-                )}
-              >
-                {faToman(Number.isFinite(total) ? total : 0)}
-              </strong>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={busy}
-                onClick={onClose}
-                className="h-11 rounded-xl text-xs"
-              >
-                انصراف
-              </Button>
-              <Button
-                type="submit"
-                disabled={busy}
-                className={cn(
-                  "h-11 flex-1 rounded-xl border-0 text-sm font-bold",
-                  direction === "expense"
-                    ? "bg-rose-600 text-white hover:bg-rose-700"
-                    : "clay-primary hover:brightness-105",
-                )}
-              >
-                {busy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Check className="size-4" />
-                )}
-                {busy
-                  ? "در حال ذخیره…"
-                  : direction === "expense"
-                    ? "ثبت هزینه در دفتر"
-                    : "ثبت کار و درآمد"}
-              </Button>
+            <div className="fin-entry-footer-row">
+              <div className="fin-entry-footer-total">
+                <span>مبلغ قابل ثبت</span>
+                <Money value={Number.isFinite(total) ? total : 0} />
+              </div>
+              <div className="fin-entry-footer-actions">
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="fin-button secondary"
+                  onClick={onClose}
+                >
+                  انصراف
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className={
+                    "fin-button " +
+                    (direction === "expense" ? "danger" : "primary")
+                  }
+                >
+                  {busy ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Check size={16} />
+                  )}{" "}
+                  {busy
+                    ? "در حال ذخیره…"
+                    : direction === "expense"
+                      ? "ثبت نهایی هزینه"
+                      : "ثبت نهایی فروش"}
+                </button>
+              </div>
             </div>
           </footer>
         </form>

@@ -8,6 +8,7 @@ export function useAccounting(enabled: boolean) {
     token: string | null;
     data?: AccountingData;
     error?: string;
+    updatedAt?: number;
   }>({ token: null });
   const identity = useRef(token);
   identity.current = token;
@@ -42,13 +43,14 @@ export function useAccounting(enabled: boolean) {
       try {
         const data = await api("", undefined, signal);
         if (identity.current === token && current === sequence.current)
-          setState({ token, data });
+          setState({ token, data, updatedAt: Date.now() });
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
         if (identity.current === token && current === sequence.current)
           setState((previous) => ({
             token,
             data: previous.token === token ? previous.data : undefined,
+            updatedAt: previous.updatedAt,
             error: (error as Error).message || "دریافت اطلاعات انجام نشد.",
           }));
       }
@@ -79,6 +81,7 @@ export function useAccounting(enabled: boolean) {
   return {
     data: state.token === token ? state.data : undefined,
     error: state.token === token ? state.error : undefined,
+    updatedAt: state.token === token ? state.updatedAt : undefined,
     refresh: () => refresh(),
     mutate,
   };

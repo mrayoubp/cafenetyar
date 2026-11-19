@@ -156,7 +156,10 @@ const MANAGEMENT_NAV: NavItem[] = [
 
 const SECTION_TITLES: Record<SectionKey, { title: string; eyebrow: string }> = {
   overview: { title: "نمای کلی", eyebrow: "پنل مدیریت کافی‌نت" },
-  accounting: { title: "حسابداری و انبار", eyebrow: "دفتر مالی · کالا و خدمات" },
+  accounting: {
+    title: "حسابداری و انبار",
+    eyebrow: "دفتر مالی · کالا و خدمات",
+  },
   news: { title: "اخبار روز", eyebrow: "مرکز خبر کافی‌نت" },
   sites: { title: "سایت‌های کاربردی", eyebrow: "بانک سامانه‌های پرکاربرد" },
   agent: { title: "ایجنت هوشمند", eyebrow: "دستیار تخصصی کافی‌نت" },
@@ -187,14 +190,21 @@ export function AppShell({
   const { context } = useSession();
 
   return (
-    <div className="min-h-screen">
+    <div
+      className={cn("min-h-screen", active === "accounting" && "finance-shell")}
+    >
       <aside className="fixed inset-y-0 start-0 z-40 hidden w-[17.5rem] flex-col border-e border-border/50 bg-sidebar/65 px-5 py-6 backdrop-blur-2xl lg:flex">
         <SidebarBody active={active} />
       </aside>
 
       <div className="lg:ps-[17.5rem]">
         <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
-          <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 lg:px-8">
+          <div
+            className={cn(
+              "mx-auto flex w-full items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 lg:px-8",
+              active === "accounting" ? "max-w-[1480px]" : "max-w-6xl",
+            )}
+          >
             <Button
               type="button"
               variant="ghost"
@@ -206,7 +216,11 @@ export function AppShell({
               <Menu className="size-5" />
             </Button>
 
-            <Link to="/dashboard" className="lg:hidden" aria-label="کافی‌نت‌یار">
+            <Link
+              to="/dashboard"
+              className="lg:hidden"
+              aria-label="کافی‌نت‌یار"
+            >
               <LogoMark size="sm" className="sm:hidden" />
               <Logo size="sm" showTagline={false} className="hidden sm:flex" />
             </Link>
@@ -228,7 +242,12 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+        <main
+          className={cn(
+            "mx-auto w-full px-4 pb-16 pt-6 sm:px-6 lg:px-8",
+            active === "accounting" ? "max-w-[1480px]" : "max-w-6xl",
+          )}
+        >
           {context?.platform.maintenanceMode && (
             <div className="mb-5 flex items-start gap-2 rounded-2xl border border-primary/25 bg-primary/5 p-3 text-[11px] leading-5 text-foreground/80">
               <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -256,7 +275,10 @@ export function AppShell({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="right"
-          className="w-[19rem] border-none bg-sidebar p-0 sm:max-w-[19rem]"
+          className={cn(
+            "w-[19rem] border-none bg-sidebar p-0 sm:max-w-[19rem]",
+            active === "accounting" && "finance-shell fin-mobile-shell",
+          )}
         >
           <SheetTitle className="sr-only">منوی کافی‌نت‌یار</SheetTitle>
           <SheetDescription className="sr-only">
@@ -427,7 +449,8 @@ function SidebarBody({
                   variant="secondary"
                   className="rounded-full text-[10px] font-medium"
                 >
-                  {SUBSCRIPTION_LABELS[subscription.status] ?? subscription.status}
+                  {SUBSCRIPTION_LABELS[subscription.status] ??
+                    subscription.status}
                 </Badge>
                 <span className="text-[10px] text-muted-foreground">
                   {subscription.planName}
@@ -514,8 +537,7 @@ function NotificationsMenu() {
       source: "account" as const,
     })),
   ].sort((first, second) => second.createdAt - first.createdAt);
-  const unread =
-    platformNotifications.length + (targeted?.unread ?? 0);
+  const unread = platformNotifications.length + (targeted?.unread ?? 0);
 
   return (
     <DropdownMenu

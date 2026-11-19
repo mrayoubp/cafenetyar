@@ -1,30 +1,37 @@
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import {
-  Package,
-  Plus,
-  Search,
-  Pencil,
   Archive,
-  RotateCcw,
   ArrowDownLeft,
+  ArrowLeft,
   ArrowUpRight,
-  AlertTriangle,
   Boxes,
-  Sparkles,
+  Check,
+  ChevronLeft,
+  Download,
+  Grid2X2,
+  Layers3,
+  List,
   Loader2,
-  ShoppingCart,
+  Package,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Warehouse,
+  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import { faNumber, faToman, faDateTime } from "@/lib/format";
+import { faNumber } from "@/lib/format";
+import { financeDate, financeTime } from "@/lib/finance-view";
+import { downloadCsv } from "@/lib/csv";
 import {
   inputNumber,
   validMoney,
@@ -32,7 +39,7 @@ import {
   type CatalogItem,
   type StockMovement,
 } from "@/lib/inventory";
-import { cn } from "@/lib/utils";
+import { EmptyState, FinanceConfirm, Money } from "./FinanceUI";
 import { toast } from "sonner";
 
 type Props = {
@@ -44,14 +51,23 @@ type Props = {
   mutate: (path: string, body: unknown) => Promise<unknown>;
   onSell: (item: CatalogItem) => void;
 };
-const field = "h-11 rounded-xl border-border/60 bg-background/60 text-sm";
 const movementLabels: Record<string, string> = {
   opening: "موجودی اولیه",
-  in: "ورود به انبار",
-  out: "خروج از انبار",
+  in: "ورود کالا",
+  out: "خروج کالا",
   sale: "فروش",
   void: "برگشت ابطال",
 };
+const stockState = (item: CatalogItem) =>
+  item.archived
+    ? { label: "بایگانی", tone: "neutral" }
+    : item.kind === "service"
+      ? { label: "خدمت", tone: "blue" }
+      : item.quantity === 0
+        ? { label: "ناموجود", tone: "rose" }
+        : item.quantity <= item.lowStock
+          ? { label: "روبه‌اتمام", tone: "amber" }
+          : { label: "موجود", tone: "green" };
 export function InventoryPanel({
   catalog,
   movements,
@@ -63,330 +79,558 @@ export function InventoryPanel({
 }: Props) {
   const [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all"),
-    [archived, setArchived] = useState(false);
+    [archived, setArchived] = useState(false),
+    [layout, setLayout] = useState<"list" | "grid">("list"),
+    [onlyLow, setOnlyLow] = useState(false),
+    [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState<CatalogItem | null | undefined>(),
     [stock, setStock] = useState<{
       item: CatalogItem;
       kind: "in" | "out";
-    } | null>(null);
-  const products = catalog.filter((x) => x.kind === "product" && !x.archived),
-    low = products.filter((x) => x.quantity <= x.lowStock);
+    } | null>(null),
+    [archiveTarget, setArchiveTarget] = useState<CatalogItem | null>(null),
+    [archiveBusy, setArchiveBusy] = useState(false);
+  const active = catalog.filter((x) => !x.archived),
+    products = active.filter((x) => x.kind === "product"),
+    services = active.filter((x) => x.kind === "service"),
+    low = products.filter((x) => x.quantity <= x.lowStock),
+    empty = products.filter((x) => !x.quantity);
+  const stockValue = products.reduce(
+    (n, x) => n + BigInt(x.quantity) * BigInt(x.costToman),
+    0n,
+  );
   const rows = useMemo(
     () =>
       catalog.filter(
         (x) =>
           x.archived === archived &&
           (view !== "stock" || x.kind === "product") &&
-          (filter === "all" || x.kind === filter) &&
-          normalizeSearch([x.title, x.sku].join(" ")).includes(
+          (filter === "all" || view === "stock" || x.kind === filter) &&
+          (!onlyLow || view !== "stock" || x.quantity <= x.lowStock) &&
+          normalizeSearch(x.title + " " + x.sku).includes(
             normalizeSearch(search),
           ),
       ),
-    [catalog, archived, view, filter, search],
+    [catalog, archived, view, filter, onlyLow, search],
   );
-  const archive = async (item: CatalogItem) => {
-    if (
-      !confirm(
-        item.archived
-          ? "این کالا دوباره فعال شود؟"
-          : "این کالا بایگانی شود؟ سوابق فروش و موجودی آن حفظ می‌شود.",
-      )
-    )
-      return;
+  const archive = async () => {
+    if (!archiveTarget) return;
+    setArchiveBusy(true);
     try {
-      await mutate("/catalog", { id: item.id, archive: !item.archived });
-      toast.success("وضعیت کالا ذخیره شد.");
+      await mutate("/catalog", {
+        id: archiveTarget.id,
+        archive: !archiveTarget.archived,
+      });
+      toast.success(
+        archiveTarget.archived ? "کالا دوباره فعال شد." : "کالا بایگانی شد.",
+      );
+      setArchiveTarget(null);
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setArchiveBusy(false);
     }
   };
-  return (
-    <div className="space-y-5">
-      {view === "stock" && (
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            {
-              label: "کالاهای انبار",
-              value: products.length,
-              icon: Boxes,
-              tone: "bg-primary/10 text-primary",
-            },
-            {
-              label: "مجموع موجودی",
-              value: products.reduce((n, x) => n + x.quantity, 0),
-              icon: Package,
-              tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-            },
-            {
-              label: "نیازمند تأمین",
-              value: low.length,
-              icon: AlertTriangle,
-              tone: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-            },
-          ].map((x) => (
-            <div
-              key={x.label}
-              className="clay flex items-center gap-3 rounded-3xl p-5"
+  const exportList = () =>
+    downloadCsv(
+      "فهرست-کالا-و-خدمات.csv",
+      [
+        "نام",
+        "نوع",
+        "کد",
+        "واحد",
+        "قیمت فروش",
+        "بهای خرید",
+        "موجودی",
+        "حد هشدار",
+        "وضعیت",
+      ],
+      rows.map((x) => [
+        x.title,
+        x.kind === "product" ? "کالا" : "خدمت",
+        x.sku,
+        x.unit,
+        x.priceToman,
+        x.costToman,
+        x.kind === "product" ? x.quantity : null,
+        x.kind === "product" ? x.lowStock : null,
+        x.archived ? "بایگانی" : "فعال",
+      ]),
+    );
+  const actions = (item: CatalogItem, card = false) => (
+    <div className={card ? "fin-product-actions" : "fin-table-actions"}>
+      {canWrite &&
+        !item.archived &&
+        (view === "stock" ? (
+          <>
+            <button
+              className="fin-button subtle small"
+              onClick={() => setStock({ item, kind: "in" })}
             >
+              <Plus size={13} />
+              ورود
+            </button>
+            <button
+              className="fin-button secondary small"
+              disabled={!item.quantity}
+              onClick={() => setStock({ item, kind: "out" })}
+            >
+              <ArrowUpRight size={13} />
+              خروج
+            </button>
+          </>
+        ) : (
+          <button
+            className="fin-button subtle small"
+            disabled={item.kind === "product" && !item.quantity}
+            onClick={() => onSell(item)}
+          >
+            <ShoppingBag size={13} />
+            {card ? "ثبت فروش" : "فروش"}
+          </button>
+        ))}
+      {canWrite && (
+        <button
+          className={card ? "fin-icon-button" : ""}
+          aria-label={"ویرایش " + item.title}
+          title="ویرایش"
+          onClick={() => setEditing(item)}
+        >
+          <Pencil size={14} />
+        </button>
+      )}
+      {isOwner && (
+        <button
+          className={card ? "fin-icon-button" : ""}
+          aria-label={(item.archived ? "فعال‌سازی " : "بایگانی ") + item.title}
+          title={item.archived ? "فعال‌سازی" : "بایگانی"}
+          onClick={() => setArchiveTarget(item)}
+        >
+          {item.archived ? <RotateCcw size={14} /> : <Archive size={14} />}
+        </button>
+      )}
+    </div>
+  );
+  const cards = (
+    <div
+      className={
+        "fin-product-grid " + (layout === "list" ? "fin-mobile-only" : "")
+      }
+    >
+      {rows.map((item) => {
+        const status = stockState(item);
+        return (
+          <article key={item.id} className="fin-product-card">
+            <div className="fin-product-card-top">
               <span
-                className={cn(
-                  "grid size-12 place-items-center rounded-2xl",
-                  x.tone,
-                )}
+                className={
+                  "fin-product-symbol " +
+                  (item.kind === "service" ? "service" : "")
+                }
               >
-                <x.icon className="size-5" />
+                {item.kind === "product" ? (
+                  <Package size={21} />
+                ) : (
+                  <Sparkles size={21} />
+                )}
               </span>
-              <div>
-                <p className="text-xs text-muted-foreground">{x.label}</p>
-                <p className="mt-1 text-2xl font-extrabold">
-                  {faNumber(x.value)}
-                </p>
-              </div>
+              <span className={"fin-tag " + status.tone}>{status.label}</span>
             </div>
-          ))}
+            <h3>{item.title}</h3>
+            <p className="fin-product-code">
+              {item.kind === "product" ? "کالا" : "خدمت"} · هر {item.unit}
+              {item.sku ? " · " + item.sku : ""}
+            </p>
+            <div className="fin-product-card-price">
+              <Money value={item.priceToman} />
+            </div>
+            {item.kind === "product" && (
+              <div className="fin-product-card-stock">
+                <span>موجودی</span>
+                <b>
+                  {faNumber(item.quantity)} <small>{item.unit}</small>
+                </b>
+              </div>
+            )}
+            {actions(item, true)}
+          </article>
+        );
+      })}
+    </div>
+  );
+  return (
+    <div>
+      <div className="fin-section-head">
+        <div>
+          <h2>
+            {view === "stock"
+              ? "انبار، همیشه تحت نظر."
+              : "کالاها و خدمات کسب‌وکارت"}
+          </h2>
+          <p>
+            {view === "stock"
+              ? "موجودی، گردش کالا و زمان تأمین دوباره را دنبال کن."
+              : "قیمت‌ها و آیتم‌ها را یک‌بار تعریف کن؛ هر بار راحت‌تر بفروش."}
+          </p>
+        </div>
+        <button
+          className="fin-button primary"
+          disabled={!canWrite}
+          onClick={() => setEditing(null)}
+        >
+          <Plus size={15} />
+          تعریف آیتم جدید
+        </button>
+      </div>
+      {view === "stock" ? (
+        <div className="fin-inventory-metrics">
+          <div>
+            <span className="fin-inventory-metric-icon">
+              <Boxes size={19} />
+            </span>
+            <p>
+              کالاهای فعال
+              <strong>
+                {faNumber(products.length)} <small>قلم</small>
+              </strong>
+            </p>
+          </div>
+          <div>
+            <span className="fin-inventory-metric-icon amber">
+              <Layers3 size={19} />
+            </span>
+            <p>
+              نیازمند تأمین
+              <strong>
+                {faNumber(low.length)} <small>قلم</small>
+              </strong>
+            </p>
+          </div>
+          <div>
+            <span className="fin-inventory-metric-icon rose">
+              <Package size={19} />
+            </span>
+            <p>
+              ناموجود
+              <strong>
+                {faNumber(empty.length)} <small>قلم</small>
+              </strong>
+            </p>
+          </div>
+          <div>
+            <span className="fin-inventory-metric-icon blue">
+              <Warehouse size={19} />
+            </span>
+            <p>
+              ارزش برآوردی انبار
+              <strong className="fin-valuation">
+                {new Intl.NumberFormat("fa-IR").format(stockValue)}{" "}
+                <small>تومان</small>
+              </strong>
+              <small>بر مبنای بهای خریدِ تعریف‌شده</small>
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="fin-catalog-strip">
+          <span>
+            <i className="green" />
+            <b>{faNumber(products.length)}</b>کالای فیزیکی
+          </span>
+          <span>
+            <i className="blue" />
+            <b>{faNumber(services.length)}</b>خدمت
+          </span>
+          <span>
+            <Archive size={12} />
+            <b>{faNumber(catalog.length - active.length)}</b>آیتم بایگانی
+          </span>
+          <button onClick={exportList} disabled={!rows.length}>
+            <Download size={13} />
+            دریافت فهرست
+          </button>
         </div>
       )}
-      <section className="clay rounded-[28px] p-4 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-extrabold">
-              {view === "stock"
-                ? "انبار و موجودی کالا"
-                : "کالاها و خدمت‌های من"}
-            </h2>
-            <p className="mt-1 text-xs leading-6 text-muted-foreground">
-              {view === "stock"
-                ? "ورود و خروج کالا را ثبت کنید؛ فروش، موجودی را خودکار کم می‌کند."
-                : "نام، واحد و قیمت دلخواه تعریف کنید و موقع ثبت کار انتخاب کنید."}
-            </p>
+      <div className={view === "stock" ? "fin-stock-layout" : ""}>
+        <section className="fin-panel fin-products-panel">
+          <div className="fin-products-toolbar">
+            <div className="fin-search">
+              <Search size={16} />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="جست‌وجوی نام یا کد…"
+                aria-label="جست‌وجوی کالا و خدمت"
+              />
+            </div>
+            <div className="fin-products-filter">
+              {view === "stock" ? (
+                <button
+                  className={"fin-filter-pill " + (onlyLow ? "active" : "")}
+                  onClick={() => setOnlyLow((x) => !x)}
+                >
+                  نیازمند تأمین <b>{faNumber(low.length)}</b>
+                </button>
+              ) : (
+                <select
+                  className="fin-select"
+                  aria-label="نوع آیتم"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                >
+                  <option value="all">همهٔ آیتم‌ها</option>
+                  <option value="product">کالاها</option>
+                  <option value="service">خدمات</option>
+                </select>
+              )}
+              <label className="fin-checkbox">
+                <input
+                  type="checkbox"
+                  checked={archived}
+                  onChange={(e) => setArchived(e.target.checked)}
+                />
+                بایگانی
+              </label>
+              <div className="fin-view-toggle">
+                <button
+                  aria-label="نمای فهرست"
+                  aria-pressed={layout === "list"}
+                  onClick={() => setLayout("list")}
+                  className={layout === "list" ? "active" : ""}
+                >
+                  <List size={15} />
+                </button>
+                <button
+                  aria-label="نمای کارت"
+                  aria-pressed={layout === "grid"}
+                  onClick={() => setLayout("grid")}
+                  className={layout === "grid" ? "active" : ""}
+                >
+                  <Grid2X2 size={15} />
+                </button>
+              </div>
+            </div>
           </div>
-          <Button
-            disabled={!canWrite}
-            onClick={() => setEditing(null)}
-            className="clay-primary h-10 rounded-xl border-0 text-xs"
-          >
-            <Plus className="size-4" />
-            تعریف کالا یا خدمت
-          </Button>
-        </div>
-        <div className="my-5 flex flex-wrap items-center gap-3">
-          <div className="flex min-w-48 flex-1 items-center gap-2 rounded-2xl bg-muted/50 px-3">
-            <Search className="size-4 text-muted-foreground" />
-            <Input
-              aria-label="جست‌وجوی کالا"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="نام یا کد کالا را جست‌وجو کنید…"
-              className="h-11 border-0 bg-transparent shadow-none focus-visible:ring-0"
+          {!rows.length ? (
+            <EmptyState
+              icon={<Package />}
+              title={
+                search || onlyLow || archived
+                  ? "موردی با این مشخصات پیدا نشد"
+                  : "اولین آیتمت را تعریف کن"
+              }
+              description={
+                search || onlyLow || archived
+                  ? "فیلترها را تغییر بده یا عبارت دیگری جست‌وجو کن."
+                  : "مثلاً کاغذ A4، خدمت تایپ یا پرینت. نام و قیمت را خودت تعیین می‌کنی."
+              }
+              action={
+                !search && !onlyLow && !archived ? (
+                  <button
+                    disabled={!canWrite}
+                    className="fin-button subtle"
+                    onClick={() => setEditing(null)}
+                  >
+                    <Plus size={14} />
+                    تعریف کالا یا خدمت
+                  </button>
+                ) : undefined
+              }
             />
-          </div>
-          {view === "catalog" && (
-            <select
-              aria-label="نوع کالا"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="h-11 rounded-xl border border-border/60 bg-background px-3 text-xs"
-            >
-              <option value="all">همه موارد</option>
-              <option value="product">کالا</option>
-              <option value="service">خدمت</option>
-            </select>
+          ) : (
+            <>
+              {layout === "list" && (
+                <div className="fin-desktop-only fin-table-scroll">
+                  <table className="fin-table fin-catalog-table">
+                    <thead>
+                      <tr>
+                        <th>نام کالا / خدمت</th>
+                        <th>قیمت فروش</th>
+                        <th>
+                          {view === "stock" ? "موجودی / حد هشدار" : "موجودی"}
+                        </th>
+                        <th>وضعیت</th>
+                        <th aria-label="عملیات" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((item) => {
+                        const status = stockState(item);
+                        return (
+                          <tr key={item.id}>
+                            <td>
+                              <div className="fin-catalog-name">
+                                <span
+                                  className={
+                                    "fin-product-symbol " +
+                                    (item.kind === "service" ? "service" : "")
+                                  }
+                                >
+                                  {item.kind === "product" ? (
+                                    <Package size={17} />
+                                  ) : (
+                                    <Sparkles size={17} />
+                                  )}
+                                </span>
+                                <div>
+                                  <strong>{item.title}</strong>
+                                  <small>
+                                    {item.sku
+                                      ? "کد " + item.sku
+                                      : item.kind === "service"
+                                        ? "خدمت"
+                                        : "بدون کد"}{" "}
+                                    · هر {item.unit}
+                                  </small>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <Money value={item.priceToman} />
+                            </td>
+                            <td>
+                              {item.kind === "product" ? (
+                                <div className="fin-stock-quantity">
+                                  <strong>
+                                    {faNumber(item.quantity)}{" "}
+                                    <small>{item.unit}</small>
+                                  </strong>
+                                  {view === "stock" && (
+                                    <>
+                                      <div>
+                                        <i
+                                          className={
+                                            item.quantity <= item.lowStock
+                                              ? "warning"
+                                              : ""
+                                          }
+                                          style={{
+                                            width:
+                                              Math.max(
+                                                3,
+                                                Math.min(
+                                                  100,
+                                                  (item.quantity /
+                                                    Math.max(
+                                                      item.lowStock * 3,
+                                                      1,
+                                                    )) *
+                                                    100,
+                                                ),
+                                              ) + "%",
+                                          }}
+                                        />
+                                      </div>
+                                      <small>
+                                        حد هشدار: {faNumber(item.lowStock)}
+                                      </small>
+                                    </>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="fin-muted">—</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className={"fin-tag " + status.tone}>
+                                {status.label}
+                              </span>
+                            </td>
+                            <td>{actions(item)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {cards}
+            </>
           )}
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={archived}
-              onChange={(e) => setArchived(e.target.checked)}
-              className="size-4 accent-primary"
-            />
-            بایگانی‌ها
-          </label>
-        </div>
-        {!rows.length ? (
-          <div className="flex flex-col items-center rounded-3xl border border-dashed border-border bg-muted/20 px-5 py-12 text-center">
-            <Package className="size-10 text-primary/50" />
-            <h3 className="mt-4 text-sm font-bold">
-              {search
-                ? "موردی با این مشخصات پیدا نشد"
-                : "اولین کالا یا خدمت را تعریف کنید"}
-            </h3>
-            <p className="mt-2 max-w-md text-xs leading-6 text-muted-foreground">
-              مثلاً کاغذ A4 با موجودی انبار، یا خدمت تایپ و پرینت با قیمت هر
-              صفحه.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {rows.map((item) => (
-              <article
-                key={item.id}
-                className="rounded-3xl border border-border/60 bg-background/40 p-4"
+          <div className="fin-table-footer">
+            <span>
+              {faNumber(rows.length)} آیتم {archived ? "بایگانی‌شده" : "فعال"}
+            </span>
+            {view === "stock" ? (
+              <button
+                className="fin-green"
+                onClick={exportList}
+                disabled={!rows.length}
               >
-                <div className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "grid size-11 shrink-0 place-items-center rounded-2xl",
-                      item.kind === "product"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-violet-500/10 text-violet-600 dark:text-violet-300",
-                    )}
-                  >
-                    {item.kind === "product" ? (
-                      <Package className="size-5" />
-                    ) : (
-                      <Sparkles className="size-5" />
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold break-words">
-                      {item.title}
-                    </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      {item.kind === "product" ? "کالا" : "خدمت"} · هر{" "}
-                      {item.unit}
-                      {item.sku ? " · کد " + item.sku : ""}
-                    </p>
-                  </div>
-                  {canWrite && (
-                    <button
-                      aria-label={"ویرایش " + item.title}
-                      onClick={() => setEditing(item)}
-                      className="rounded-xl p-2 text-muted-foreground hover:bg-muted"
-                    >
-                      <Pencil className="size-4" />
-                    </button>
-                  )}
-                </div>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-lg font-extrabold">
-                    {faToman(item.priceToman)}
-                  </p>
-                  {item.kind === "product" && (
-                    <span
-                      className={cn(
-                        "rounded-full px-2.5 py-1 text-xs font-semibold",
-                        item.quantity <= item.lowStock
-                          ? "bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                          : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
-                      )}
-                    >
-                      موجودی: {faNumber(item.quantity)} {item.unit}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-border/40 pt-3">
-                  {canWrite && !item.archived && (
-                    <>
-                      {view === "stock" ? (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl text-xs"
-                            onClick={() => setStock({ item, kind: "in" })}
-                          >
-                            <Plus className="size-3.5" />
-                            ورود کالا
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="rounded-xl text-xs"
-                            onClick={() => setStock({ item, kind: "out" })}
-                            disabled={item.quantity === 0}
-                          >
-                            <ArrowUpRight className="size-3.5" />
-                            خروج کالا
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl text-xs"
-                          onClick={() => onSell(item)}
-                          disabled={
-                            item.kind === "product" && item.quantity === 0
-                          }
-                        >
-                          <ShoppingCart className="size-3.5" />
-                          ثبت کار / فروش
-                        </Button>
-                      )}
-                    </>
-                  )}
-                  {isOwner && (
-                    <button
-                      onClick={() => void archive(item)}
-                      className="ms-auto inline-flex items-center gap-1.5 rounded-xl px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted"
-                    >
-                      {item.archived ? (
-                        <RotateCcw className="size-3.5" />
-                      ) : (
-                        <Archive className="size-3.5" />
-                      )}
-                      {item.archived ? "فعال‌سازی" : "بایگانی"}
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-      {view === "stock" && (
-        <section className="clay rounded-[28px] p-5">
-          <h2 className="text-sm font-extrabold">گردش‌های اخیر انبار</h2>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            ۱۰۰ گردش آخر · ورود، خروج، فروش و برگشت ابطال
-          </p>
-          <div className="mt-4 divide-y divide-border/50">
-            {movements.length ? (
-              movements.map((m) => (
-                <div key={m.id} className="flex items-start gap-3 py-3">
-                  <span
-                    className={cn(
-                      "grid size-9 shrink-0 place-items-center rounded-xl",
-                      m.delta > 0
-                        ? "bg-emerald-500/10 text-emerald-600"
-                        : "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-                    )}
-                  >
-                    {m.delta > 0 ? (
-                      <ArrowDownLeft className="size-4" />
-                    ) : (
-                      <ArrowUpRight className="size-4" />
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold">
-                      {m.title}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        · {movementLabels[m.kind] || m.kind}
-                      </span>
-                    </p>
-                    <p className="mt-1 break-words text-[11px] text-muted-foreground">
-                      {m.reason}
-                    </p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
-                      {faDateTime(m.createdAt)}
-                    </p>
-                  </div>
-                  <strong dir="ltr" className="whitespace-nowrap text-sm">
-                    {m.delta > 0 ? "+" : "−"}
-                    {faNumber(Math.abs(m.delta))}{" "}
-                    <span className="text-[10px] font-normal">{m.unit}</span>
-                  </strong>
-                </div>
-              ))
+                دریافت فهرست موجودی
+              </button>
             ) : (
-              <p className="py-7 text-center text-xs text-muted-foreground">
-                گردشی ثبت نشده است.
-              </p>
+              <span>قیمت نهایی موقع فروش قابل تغییر است.</span>
             )}
           </div>
         </section>
-      )}
+        {view === "stock" && (
+          <aside className="fin-panel fin-movements">
+            <div className="fin-panel-head">
+              <div>
+                <h2>ردِ حرکت کالاها</h2>
+                <p>آخرین ورود، خروج و فروش</p>
+              </div>
+              <ActivityIcon />
+            </div>
+            {!movements.length ? (
+              <EmptyState
+                icon={<Warehouse />}
+                title="هنوز گردشی ثبت نشده"
+                description="با ورود کالا یا اولین فروش، مسیر موجودی اینجا دیده می‌شود."
+              />
+            ) : (
+              <div className="fin-movement-list">
+                {movements.slice(0, expanded ? 100 : 8).map((m) => (
+                  <div className="fin-movement" key={m.id}>
+                    <span
+                      className={
+                        "fin-movement-dot " +
+                        (m.delta > 0 ? "positive" : "negative")
+                      }
+                    >
+                      {m.delta > 0 ? (
+                        <ArrowDownLeft size={13} />
+                      ) : (
+                        <ArrowUpRight size={13} />
+                      )}
+                    </span>
+                    <div>
+                      <h3>{m.title}</h3>
+                      <p>
+                        {movementLabels[m.kind] || m.kind} · {m.reason}
+                      </p>
+                      <small>
+                        {financeDate(m.createdAt)} · {financeTime(m.createdAt)}
+                      </small>
+                    </div>
+                    <b
+                      dir="ltr"
+                      className={m.delta > 0 ? "fin-green" : "fin-red"}
+                    >
+                      {m.delta > 0 ? "+" : "−"}
+                      {faNumber(Math.abs(m.delta))}
+                      <small>{m.unit}</small>
+                    </b>
+                  </div>
+                ))}
+              </div>
+            )}
+            {movements.length > 8 && (
+              <button
+                className="fin-movement-expand"
+                onClick={() => setExpanded((x) => !x)}
+              >
+                {expanded ? "نمایش خلاصه" : "مشاهدهٔ همهٔ گردش‌ها"}
+                <ChevronLeft size={13} />
+              </button>
+            )}
+            <div className="fin-note">
+              گردش انبار به‌تنهایی هزینهٔ خرید ثبت نمی‌کند.
+            </div>
+          </aside>
+        )}
+      </div>
       {editing !== undefined && (
         <CatalogEditor
           item={editing}
@@ -401,7 +645,35 @@ export function InventoryPanel({
           mutate={mutate}
         />
       )}
+      {archiveTarget && (
+        <FinanceConfirm
+          title={
+            archiveTarget.archived
+              ? "این آیتم دوباره فعال شود؟"
+              : "این آیتم بایگانی شود؟"
+          }
+          description={
+            "«" +
+            archiveTarget.title +
+            "» " +
+            (archiveTarget.archived
+              ? "دوباره در فهرست فروش نمایش داده می‌شود."
+              : "از انتخاب‌های فروش کنار می‌رود. سوابق و موجودی آن باقی می‌مانند.")
+          }
+          label={archiveTarget.archived ? "فعال‌سازی آیتم" : "بایگانی آیتم"}
+          busy={archiveBusy}
+          onCancel={() => setArchiveTarget(null)}
+          onConfirm={() => void archive()}
+        />
+      )}
     </div>
+  );
+}
+function ActivityIcon() {
+  return (
+    <span className="fin-heading-icon">
+      <Layers3 size={16} />
+    </span>
   );
 }
 function CatalogEditor({
@@ -416,19 +688,27 @@ function CatalogEditor({
   const [kind, setKind] = useState<"product" | "service">(
       item?.kind || "product",
     ),
+    [title, setTitle] = useState(item?.title || ""),
+    [unit, setUnit] = useState(item?.unit || "عدد"),
+    [price, setPrice] = useState(item ? String(item.priceToman) : ""),
+    [cost, setCost] = useState(String(item?.costToman || 0)),
+    [quantity, setQuantity] = useState("0"),
+    [low, setLow] = useState(String(item?.lowStock ?? 5)),
+    [sku, setSku] = useState(item?.sku || ""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const rid = useRef(crypto.randomUUID());
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const f = new FormData(e.currentTarget),
-      num = (name: string) => inputNumber(String(f.get(name) || "0"));
-    const price = num("priceToman"),
-      cost = num("costToman"),
-      quantity = num("quantity"),
-      low = num("lowStock");
-    if (![price, cost, quantity, low].every((x) => validMoney(x))) {
-      setError("قیمت و تعداد را به‌صورت عدد صحیح و معتبر وارد کنید.");
+    if (busy) return;
+    const values = [price, cost, quantity, low].map(inputNumber);
+    if (
+      !title.trim() ||
+      !price.trim() ||
+      !unit.trim() ||
+      !values.every((x) => validMoney(x))
+    ) {
+      setError("نام، واحد، قیمت و تعداد را کامل و به‌صورت عدد صحیح وارد کنید.");
       return;
     }
     setBusy(true);
@@ -438,16 +718,16 @@ function CatalogEditor({
         id: item?.id,
         version: item?.version,
         requestId: rid.current,
-        title: f.get("title"),
+        title,
         kind,
-        unit: f.get("unit"),
-        sku: f.get("sku"),
-        priceToman: price,
-        costToman: cost,
-        quantity,
-        lowStock: low,
+        unit,
+        sku,
+        priceToman: values[0],
+        costToman: kind === "product" ? values[1] : 0,
+        quantity: kind === "product" ? values[2] : 0,
+        lowStock: kind === "product" ? values[3] : 0,
       });
-      toast.success(item ? "کالا به‌روز شد." : "کالا یا خدمت تعریف شد.");
+      toast.success("آیتم با موفقیت ذخیره شد.");
       onClose();
     } catch (e) {
       setError((e as Error).message);
@@ -458,162 +738,235 @@ function CatalogEditor({
   return (
     <Dialog
       open
-      onOpenChange={(open) => {
-        if (!open && !busy) onClose();
+      onOpenChange={(v) => {
+        if (!v && !busy) onClose();
       }}
     >
-      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-[28px] sm:max-w-lg [&>[data-slot=dialog-close]]:left-4 [&>[data-slot=dialog-close]]:right-auto">
-        <DialogHeader className="pe-8 text-start sm:text-start">
-          <DialogTitle>
-            {item ? "ویرایش کالا یا خدمت" : "تعریف کالا یا خدمت"}
-          </DialogTitle>
-          <DialogDescription>
-            قیمت پایه را ثبت کنید؛ هنگام ثبت کار هم می‌توانید قیمت دلخواه
-            بگذارید.
-          </DialogDescription>
+      <DialogContent className="finance-modal fin-catalog-dialog">
+        <DialogHeader className="fin-dialog-header">
+          <div className="fin-dialog-title-row">
+            <span className="fin-dialog-icon">
+              {kind === "product" ? (
+                <Package size={22} />
+              ) : (
+                <Sparkles size={22} />
+              )}
+            </span>
+            <div>
+              <DialogTitle>
+                {item ? "ویرایش آیتم" : "یک آیتم تازه تعریف کن"}
+              </DialogTitle>
+              <DialogDescription>
+                اطلاعات پایهٔ کالا یا خدمت برای فروش‌های بعدی
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            {(["product", "service"] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                disabled={!!item}
-                onClick={() => setKind(k)}
-                className={cn(
-                  "flex items-center justify-center gap-2 rounded-2xl border p-3 text-sm font-semibold",
-                  kind === k
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground",
-                )}
-              >
-                {k === "product" ? (
-                  <Package className="size-4" />
-                ) : (
-                  <Sparkles className="size-4" />
-                )}
-                {k === "product" ? "کالای انبار" : "خدمت"}
-              </button>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="product-title">
-              نام {kind === "product" ? "کالا" : "خدمت"}
-            </Label>
-            <Input
-              id="product-title"
-              name="title"
-              required
-              maxLength={120}
-              defaultValue={item?.title}
-              placeholder={
-                kind === "product" ? "مثلاً کاغذ A4" : "مثلاً تایپ فارسی"
-              }
-              className={field}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="product-price">قیمت فروش (تومان)</Label>
-              <Input
-                id="product-price"
-                name="priceToman"
-                required
-                inputMode="numeric"
-                defaultValue={item?.priceToman}
-                placeholder="مثلاً ۱۵۰۰۰"
-                className={field}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="product-unit">واحد</Label>
-              <Input
-                id="product-unit"
-                name="unit"
-                required
-                maxLength={30}
-                defaultValue={
-                  item?.unit || (kind === "product" ? "عدد" : "نوبت")
-                }
-                placeholder="عدد، صفحه، ساعت…"
-                className={field}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="product-sku">کد (اختیاری)</Label>
-              <Input
-                id="product-sku"
-                name="sku"
-                maxLength={60}
-                defaultValue={item?.sku}
-                className={field}
-              />
-            </div>
-            {kind === "product" && (
-              <div className="space-y-2">
-                <Label htmlFor="product-cost">بهای خرید هر واحد (تومان)</Label>
-                <Input
-                  id="product-cost"
-                  name="costToman"
-                  inputMode="numeric"
-                  defaultValue={item?.costToman ?? 0}
-                  className={field}
-                />
+        <form onSubmit={submit} className="fin-editor-form">
+          <div className="fin-catalog-editor-layout">
+            <div className="fin-editor-fields">
+              <div className="fin-kind-picker">
+                {(["product", "service"] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    className={kind === k ? "selected" : ""}
+                    disabled={!!item}
+                    onClick={() => {
+                      setKind(k);
+                      if (!item) setUnit(k === "service" ? "نوبت" : "عدد");
+                    }}
+                  >
+                    {k === "product" ? (
+                      <Package size={18} />
+                    ) : (
+                      <Sparkles size={18} />
+                    )}
+                    <span>
+                      {k === "product" ? "کالای فیزیکی" : "خدمت"}
+                      <small>
+                        {k === "product" ? "با موجودی انبار" : "بدون موجودی"}
+                      </small>
+                    </span>
+                    {kind === k && <Check size={14} />}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
-          {kind === "product" && (
-            <div className="grid grid-cols-2 gap-3 rounded-2xl bg-muted/40 p-3">
-              {!item && (
-                <div className="space-y-2">
-                  <Label htmlFor="product-quantity">موجودی اولیه</Label>
-                  <Input
-                    id="product-quantity"
-                    name="quantity"
-                    inputMode="numeric"
-                    defaultValue="0"
-                    className={field}
+              <div className="fin-form-section">
+                <h3>
+                  <span>۱</span>مشخصات اصلی
+                </h3>
+                <label className="fin-field">
+                  نام {kind === "product" ? "کالا" : "خدمت"}
+                  <input
+                    className="fin-input"
+                    required
+                    maxLength={120}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={
+                      kind === "product" ? "مثلاً کاغذ A4" : "مثلاً تایپ فارسی"
+                    }
                   />
+                </label>
+                <div className="fin-field-grid">
+                  <label className="fin-field">
+                    کد اختصاصی <small>اختیاری</small>
+                    <input
+                      className="fin-input"
+                      maxLength={60}
+                      value={sku}
+                      onChange={(e) => setSku(e.target.value)}
+                      placeholder="مثلاً PR-104"
+                    />
+                  </label>
+                  <label className="fin-field">
+                    واحد
+                    <input
+                      className="fin-input"
+                      required
+                      list="finance-unit-options"
+                      value={unit}
+                      maxLength={30}
+                      onChange={(e) => setUnit(e.target.value)}
+                    />
+                    <datalist id="finance-unit-options">
+                      {["عدد", "برگ", "بسته", "صفحه", "نوبت", "ساعت"].map(
+                        (x) => (
+                          <option key={x} value={x} />
+                        ),
+                      )}
+                    </datalist>
+                  </label>
+                </div>
+              </div>
+              <div className="fin-form-section">
+                <h3>
+                  <span>۲</span>قیمت‌گذاری
+                </h3>
+                <div className="fin-field-grid">
+                  <label className="fin-field">
+                    قیمت فروش <small>تومان</small>
+                    <input
+                      required
+                      className="fin-input"
+                      inputMode="numeric"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="۰"
+                    />
+                  </label>
+                  {kind === "product" && (
+                    <label className="fin-field">
+                      بهای خرید <small>تومان</small>
+                      <input
+                        className="fin-input"
+                        inputMode="numeric"
+                        value={cost}
+                        onChange={(e) => setCost(e.target.value)}
+                      />
+                    </label>
+                  )}
+                </div>
+                <p className="fin-field-hint">
+                  این قیمت پایه است؛ هنگام ثبت هر فروش می‌توانی تغییرش بدهی.
+                </p>
+              </div>
+              {kind === "product" && (
+                <div className="fin-form-section">
+                  <h3>
+                    <span>۳</span>تنظیمات موجودی
+                  </h3>
+                  <div className="fin-field-grid">
+                    {!item ? (
+                      <label className="fin-field">
+                        موجودی اولیه
+                        <input
+                          className="fin-input"
+                          inputMode="numeric"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                        />
+                      </label>
+                    ) : (
+                      <div className="fin-field">
+                        موجودی فعلی
+                        <strong className="fin-existing-stock">
+                          {faNumber(item.quantity)} <small>{unit}</small>
+                        </strong>
+                      </div>
+                    )}
+                    <label className="fin-field">
+                      حد هشدار موجودی
+                      <input
+                        className="fin-input"
+                        inputMode="numeric"
+                        value={low}
+                        onChange={(e) => setLow(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  {item && (
+                    <p className="fin-field-hint">
+                      برای اصلاح موجودی، از ورود یا خروج انبار استفاده کن.
+                    </p>
+                  )}
                 </div>
               )}
-              <div className="space-y-2">
-                <Label htmlFor="product-low">هشدار موجودی در تعداد</Label>
-                <Input
-                  id="product-low"
-                  name="lowStock"
-                  inputMode="numeric"
-                  defaultValue={item?.lowStock ?? 5}
-                  className={field}
-                />
-              </div>
-              {item && (
-                <p className="text-xs leading-6 text-muted-foreground">
-                  موجودی فعلی: {faNumber(item.quantity)} {item.unit}. برای
-                  تغییر، از ورود یا خروج انبار استفاده کنید.
+              {error && (
+                <p className="fin-form-error" role="alert">
+                  {error}
                 </p>
               )}
             </div>
-          )}
-          {error && (
-            <p
-              role="alert"
-              className="rounded-xl bg-destructive/10 p-3 text-xs text-destructive"
+            <aside className="fin-item-preview">
+              <span className="fin-label">پیش‌نمایش آیتم</span>
+              <div
+                className={
+                  "fin-product-symbol " + (kind === "service" ? "service" : "")
+                }
+              >
+                {kind === "product" ? (
+                  <Package size={30} />
+                ) : (
+                  <Sparkles size={30} />
+                )}
+              </div>
+              <h3>{title || "نام آیتم شما"}</h3>
+              <p>
+                {kind === "product" ? "کالای فیزیکی" : "خدمت"} · هر{" "}
+                {unit || "واحد"}
+              </p>
+              {price.trim() && validMoney(inputNumber(price)) ? (
+                <Money value={inputNumber(price)} />
+              ) : (
+                <span className="fin-preview-placeholder">قیمت را وارد کن</span>
+              )}
+              <div className="fin-item-preview-tip">
+                {kind === "product"
+                  ? "با هر فروش، موجودی کالا خودکار به‌روز می‌شود."
+                  : "این خدمت با تعداد و قیمت دلخواه در فروش قابل انتخاب است."}
+              </div>
+            </aside>
+          </div>
+          <div className="fin-dialog-actions">
+            <button
+              type="button"
+              className="fin-button secondary"
+              disabled={busy}
+              onClick={onClose}
             >
-              {error}
-            </p>
-          )}
-          <Button
-            type="submit"
-            disabled={busy}
-            className="clay-primary h-11 w-full rounded-xl border-0"
-          >
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Plus className="size-4" />
-            )}
-            ذخیره {kind === "product" ? "کالا" : "خدمت"}
-          </Button>
+              انصراف
+            </button>
+            <button className="fin-button primary" disabled={busy}>
+              {busy ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Check size={16} />
+              )}
+              ذخیرهٔ {kind === "product" ? "کالا" : "خدمت"}
+            </button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
@@ -630,19 +983,23 @@ function StockEditor({
   onClose: () => void;
   mutate: Props["mutate"];
 }) {
-  const [busy, setBusy] = useState(false),
+  const [quantity, setQuantity] = useState(""),
+    [reason, setReason] = useState(""),
+    [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const rid = useRef(crypto.randomUUID());
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
+  const qty = inputNumber(quantity) || 0,
+    after = item.quantity + (kind === "in" ? qty : -qty);
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const f = new FormData(e.currentTarget),
-      quantity = inputNumber(String(f.get("quantity")));
+    if (busy) return;
     if (
-      !Number.isSafeInteger(quantity) ||
-      quantity < 1 ||
-      (kind === "out" && quantity > item.quantity)
+      !Number.isSafeInteger(qty) ||
+      qty < 1 ||
+      qty > 1000000000 ||
+      !reason.trim()
     ) {
-      setError("تعداد واردشده با موجودی کالا سازگار نیست.");
+      setError("تعداد و دلیل گردش را کامل وارد کنید.");
       return;
     }
     setError("");
@@ -651,11 +1008,11 @@ function StockEditor({
       await mutate("/stock", {
         itemId: item.id,
         kind,
-        quantity,
-        reason: f.get("reason"),
+        quantity: qty,
+        reason,
         requestId: rid.current,
       });
-      toast.success("گردش انبار ثبت شد.");
+      toast.success("گردش موجودی ثبت شد.");
       onClose();
     } catch (e) {
       setError((e as Error).message);
@@ -670,58 +1027,97 @@ function StockEditor({
         if (!v && !busy) onClose();
       }}
     >
-      <DialogContent className="rounded-[28px] sm:max-w-md [&>[data-slot=dialog-close]]:left-4 [&>[data-slot=dialog-close]]:right-auto">
-        <DialogHeader className="pe-8 text-start sm:text-start">
-          <DialogTitle>
-            {kind === "in" ? "ورود کالا به انبار" : "خروج کالا از انبار"}
-          </DialogTitle>
-          <DialogDescription>
-            {item.title} · موجودی: {faNumber(item.quantity)} {item.unit}
-          </DialogDescription>
+      <DialogContent className="finance-modal fin-stock-dialog">
+        <DialogHeader className="fin-dialog-header">
+          <div className="fin-dialog-title-row">
+            <span className="fin-dialog-icon">
+              {kind === "in" ? (
+                <ArrowDownLeft size={22} />
+              ) : (
+                <ArrowUpRight size={22} />
+              )}
+            </span>
+            <div>
+              <DialogTitle>
+                {kind === "in" ? "ورود به انبار" : "خروج از انبار"}
+              </DialogTitle>
+              <DialogDescription>{item.title}</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="movement-quantity">تعداد ({item.unit})</Label>
-            <Input
-              id="movement-quantity"
-              name="quantity"
-              required
-              inputMode="numeric"
-              className={field}
-              autoFocus
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="movement-reason">شرح یا دلیل</Label>
-            <Input
-              id="movement-reason"
-              name="reason"
-              required
-              maxLength={300}
-              placeholder={
-                kind === "in"
-                  ? "مثلاً خرید و تحویل از تأمین‌کننده"
-                  : "مثلاً مصرف داخلی یا ضایعات"
-              }
-              className={field}
-            />
-          </div>
-          <p className="rounded-2xl bg-muted/40 p-3 text-xs leading-6 text-muted-foreground">
-            این فرم گردش موجودی را ثبت می‌کند. پرداخت خرید را در بخش «ثبت هزینه»
-            وارد کنید.
-          </p>
-          {error && (
-            <p role="alert" className="text-xs text-destructive">
-              {error}
+        <form onSubmit={submit}>
+          <div className="fin-stock-form">
+            <div className="fin-stock-preview">
+              <span>
+                موجودی فعلی
+                <b>
+                  {faNumber(item.quantity)} <small>{item.unit}</small>
+                </b>
+              </span>
+              <ArrowLeft size={20} />
+              <span>
+                پس از ثبت
+                <b className={after < 0 ? "fin-red" : "fin-green"}>
+                  {faNumber(after)} <small>{item.unit}</small>
+                </b>
+              </span>
+            </div>
+            <label className="fin-field">
+              تعداد {kind === "in" ? "ورودی" : "خروجی"}{" "}
+              <small>({item.unit})</small>
+              <input
+                className="fin-input fin-quantity-large"
+                required
+                inputMode="numeric"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                autoFocus
+                placeholder="۰"
+              />
+            </label>
+            <label className="fin-field">
+              شرح گردش
+              <input
+                className="fin-input"
+                required
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={300}
+                placeholder={
+                  kind === "in"
+                    ? "مثلاً تأمین کالا از فروشگاه"
+                    : "مثلاً مصرف داخلی یا ضایعات"
+                }
+              />
+            </label>
+            <p className="fin-field-hint">
+              این عملیات موجودی را تغییر می‌دهد. پرداخت خرید را در «ثبت هزینه»
+              وارد کن.
             </p>
-          )}
-          <Button
-            disabled={busy}
-            className="clay-primary h-11 w-full rounded-xl border-0"
-          >
-            {busy && <Loader2 className="size-4 animate-spin" />}ثبت{" "}
-            {kind === "in" ? "ورود" : "خروج"}
-          </Button>
+            {error && (
+              <p className="fin-form-error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+          <div className="fin-dialog-actions">
+            <button
+              type="button"
+              disabled={busy}
+              className="fin-button secondary"
+              onClick={onClose}
+            >
+              انصراف
+            </button>
+            <button disabled={busy} className="fin-button primary">
+              {busy ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Check size={16} />
+              )}
+              ثبت {kind === "in" ? "ورود" : "خروج"} کالا
+            </button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
