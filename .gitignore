@@ -17,3 +17,5 @@ backups/
 dist/linux/
 dist/releases/
 data/
+
+native/installer-package.generated.mjs

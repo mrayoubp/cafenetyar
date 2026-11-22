@@ -10,7 +10,7 @@
     "setup": "npm --prefix source ci",
     "build": "node scripts/build-site.mjs",
     "typecheck": "npm --prefix source run typecheck",
-    "test": "npm --prefix source test && node --test native/server.test.mjs native/accounting.test.mjs native/portable.test.mjs native/composition.test.mjs cloudflare/access.test.mjs",
+    "test": "npm --prefix source test && node --test native/server.test.mjs native/accounting.test.mjs native/portable.test.mjs native/composition.test.mjs native/installer-download.test.mjs cloudflare/access.test.mjs",
     "cloudflare:deploy": "node scripts/deploy-cloudflare.mjs",
     "start": "node --env-file-if-exists=.env dist/linux/server.mjs",
     "package:linux": "node scripts/package-linux.mjs"

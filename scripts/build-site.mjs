@@ -28,3 +28,12 @@ execFileSync(process.execPath, ["scripts/build-linux.mjs"], {
   cwd: root,
   stdio: "inherit",
 });
+
+execFileSync(process.execPath, ["scripts/package-linux.mjs"], {
+  cwd: root,
+  stdio: "inherit",
+});
+execFileSync(process.execPath, ["scripts/build-hosted.mjs"], {
+  cwd: root,
+  stdio: "inherit",
+});
