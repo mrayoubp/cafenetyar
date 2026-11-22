@@ -1,3 +1,5 @@
+> سند تاریخی نسخهٔ قبلی است. برای نسخهٔ مستقل فعلی، `docs/LINUX-HOSTING.md` در ریشهٔ مخزن را ببینید.
+
 # Original application with connected management
 
 The published entrypoint is `native/composed-server.mjs`, bundled into `dist/server/index.js`. It serves the ORIGINAL React/Vite application at `/` and its existing dashboard routes. `/manage` serves the management panel; `/admin` and `/super-admin` redirect there. Never deploy `native/server.mjs` alone: that would replace the original site with the standalone UI again.

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import type { AdminPermission } from "@/convex/lib/adminPermissions";
+import type { AdminPermission } from "@/backend/adminPermissions";
 import { useSession } from "@/hooks/use-session";
 import { ArrowRight, Loader2, ShieldAlert } from "lucide-react";
 import type { ReactNode } from "react";

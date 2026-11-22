@@ -1,7 +1,7 @@
 import { PublicShell } from "@/components/layout/PublicShell";
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { api } from "@/backend/api";
+import { useQuery } from "@/backend/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";

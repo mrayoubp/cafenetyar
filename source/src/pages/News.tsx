@@ -17,8 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import { faNumber, faRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "@/hooks/use-managed-content";

@@ -8,15 +8,15 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 import {
   ADMIN_PERMISSIONS,
   type AdminPermission,
-} from "@/convex/lib/adminPermissions";
+} from "@/backend/adminPermissions";
 import { useAuth } from "@/hooks/use-auth";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
-import { useMutation } from "convex/react";
+import { useMutation } from "@/backend/client";
 import {
   ArrowLeft,
   Bot,

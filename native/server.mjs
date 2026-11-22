@@ -1,4 +1,8 @@
-import {bearerAdmission,resolveLogin,rateLimit,manageSiteLogins} from './site-access.mjs';
+import {installHtml} from './install.mjs';
+import {exportBackup,importLedger} from './backup.mjs';
+import {authRoute,provisionAccount,ownerCredentials} from './auth-routes.mjs';
+import {rpc} from './rpc.mjs';
+import {currentUser,appContext,unassignedWorkspaces,credentialStatements,sessionCookie} from './identity.mjs';
 import {handleAccounting} from './accounting.mjs';
 import {bridge} from './bridge.mjs';
 import library from './library.json' with { type: 'json' };
@@ -20,7 +24,7 @@ function decode32(s){let bits=0,value=0,out=[];for(const c of s){value=(value<<5
 export async function totp(secret,step){const key=await crypto.subtle.importKey('raw',decode32(secret),{name:'HMAC',hash:'SHA-1'},false,['sign']);const counter=new Uint8Array(8);new DataView(counter.buffer).setBigUint64(0,BigInt(step));const mac=new Uint8Array(await crypto.subtle.sign('HMAC',key,counter));const o=mac[19]&15;return String(((mac[o]&127)*16777216+mac[o+1]*65536+mac[o+2]*256+mac[o+3])%1000000).padStart(6,'0');}
 function auditStatement(db,user,action,id,detail){return query(db,'INSERT INTO audit(id,actor_id,actor_name,action,entity_id,detail,created_at) VALUES(?,?,?,?,?,?,?)',uuid(),user?.id??null,user?.name??'ورود',action,id??null,JSON.stringify(detail),now());}
 async function identity(request){const id=request.headers.get('oai-authenticated-user-id');const email=request.headers.get('oai-authenticated-user-email')?.toLowerCase();if(!id||!email)fail('ابتدا با حساب ChatGPT خود وارد شوید.',401);return {id,email};}
-async function session(request,db){const ident=await identity(request);const token=request.headers.get('cookie')?.match(/(?:^|;\s*)kfy_session=([^;]+)/)?.[1];if(!token)fail('برای ورود دکمهٔ ورود به پنل را بزنید.',401);const row=await one(db,'SELECT s.id AS session_id,s.mfa_at,a.* FROM sessions s JOIN accounts a ON a.id=s.user_id WHERE s.id=? AND s.expires_at>? AND a.identity_id=?',await hash(token),now(),ident.id);if(!row||!row.active)fail('نشست پایان یافته است. دوباره وارد شوید.',401);row.permissions=JSON.parse(row.permissions);return row;}
+async function session(request,db){const u=await currentUser(request,db);if(!u)fail('ابتدا وارد حساب شوید.',401);return u;}
 function can(u,p){return u.role==='owner'||(u.role==='admin'&&u.permissions.includes(p));}
 function requireAdmin(u,p){if(!can(u,p))fail('اجازهٔ انجام این عملیات را ندارید.',403);if(u.role==='owner'&&(!u.mfa_at||u.mfa_at<now()-30*60*1000))fail('تأیید دومرحله‌ای مالک لازم است.',428);}
 function requireOwner(u){if(u.role!=='owner')fail('فقط مالک سایت می‌تواند این کار را انجام دهد.',403);requireAdmin(u,'owner');}
@@ -28,6 +32,7 @@ export function mergeLibrary(rows){const entries=new Map(library.map(x=>[x.id,x]
 async function contentRows(db){return mergeLibrary(await all(db,'SELECT * FROM content ORDER BY updated_at DESC'));}
 export default {async fetch(request,env){try{
  const url=new URL(request.url),path=url.pathname,db=env.DB;
+ if(path==='/install')return new Response(installHtml,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer'}});
  if(!path.startsWith('/api/'))return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin'}});
  if(!db)fail('دیتابیس هنوز متصل نشده است.',503);
  if(!['GET','HEAD'].includes(request.method)){
@@ -36,11 +41,15 @@ export default {async fetch(request,env){try{
   if(Number(request.headers.get('content-length')||0)>1500000)fail('حجم درخواست زیاد است.',413);
  }
  let body={};if(request.method==='POST'){const raw=await request.text();if(raw.length>1500000)fail('حجم درخواست زیاد است.',413);try{body=JSON.parse(raw);}catch{fail('اطلاعات معتبر نیست.');}}
- if(path==='/api/site-access'&&request.method==='GET')return json({ok:true,account:await bearerAdmission(request,env)});
- if(path==='/api/login-name'&&request.method==='POST'){await rateLimit(db,'identifier:'+(request.headers.get('cf-connecting-ip')||'unknown'));return json({phone:await resolveLogin(db,env,body.identifier)});}
+ const authResponse=await authRoute(request,env,body);if(authResponse)return authResponse;
  if(path==='/api/register')fail('ثبت‌نام عمومی بسته است؛ حساب را از مدیر دریافت کنید.',403);
- if(path==='/api/accounting'||path.startsWith('/api/accounting/'))return await handleAccounting(request,env,body);
- if(path==='/api/bridge'){const bridgeRequest=request.method==='POST'?new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify(body)}):request;return await bridge(bridgeRequest,db,(await contentRows(db)).filter(x=>x.published));}
+ if(path==='/api/rpc')return await rpc(request,env,body,(await contentRows(db)).filter(x=>x.published),(actor,action,id,detail)=>auditStatement(db,actor,action,id,detail));
+ if(path==='/api/accounting'||path.startsWith('/api/accounting/'))return await handleAccounting(request,env,body,await appContext(db,await currentUser(request,db)));
+ if(path==='/api/bridge'){
+  const user=await currentUser(request,db),headers=new Headers(request.headers);headers.delete('oai-authenticated-user-id');if(user)headers.set('oai-authenticated-user-id',user.id);
+  if(request.method==='POST'&&!user)fail('ورود به حساب سایت لازم است.',401);
+  const req=new Request(request.url,{method:request.method,headers,...(request.method==='POST'?{body:JSON.stringify(body)}:{})});return await bridge(req,db,(await contentRows(db)).filter(x=>x.published));
+ }
  if(path==='/api/branding'&&request.method==='GET'){const row=await one(db,"SELECT value FROM settings WHERE id='site'");return json(row?JSON.parse(row.value):{});}
  if(path==='/api/public'&&request.method==='GET'){
   const settings=await one(db,"SELECT value FROM settings WHERE id='site'");
@@ -64,10 +73,14 @@ export default {async fetch(request,env){try{
   return json({ok:true},200,{'Set-Cookie':`kfy_session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`});
  }
  const u=await session(request,db);
- if(path==='/api/site-accounts'){requireOwner(u);return await manageSiteLogins(request,env,body,u,(actor,action,id,detail)=>auditStatement(db,actor,action,id,detail));}
+ if(path==='/api/site-accounts'){requireOwner(u);return await provisionAccount(request,env,body,u,(actor,action,id,detail)=>auditStatement(db,actor,action,id,detail));}
+ if(path==='/api/backup'&&request.method==='GET'){requireOwner(u);return json(await exportBackup(db),200,{'Content-Disposition':'attachment; filename="cafenetyar-backup.json"'});}
+ if(path==='/api/import/ledger'&&request.method==='POST'){requireOwner(u);return json(await importLedger(db,u,body,(actor,action,id,detail)=>auditStatement(db,actor,action,id,detail)));}
+ if(path==='/api/workspaces'&&request.method==='GET'){requireOwner(u);return json(await unassignedWorkspaces(db));}
+ if(path==='/api/auth/owner-credentials'&&request.method==='POST'){requireOwner(u);return await ownerCredentials(request,env,body,u,(actor,action,id,detail)=>auditStatement(db,actor,action,id,detail));}
  if(path==='/api/me'&&request.method==='GET'){
   let security=await one(db,'SELECT enabled FROM mfa WHERE user_id=?',u.id);
-  return json({user:{id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,permissions:u.permissions,cafe:u.cafe,subscription_end:u.subscription_end},mfaRequired:u.role==='owner'&&(!u.mfa_at||u.mfa_at<now()-1800000),mfaEnabled:!!security?.enabled,catalog:PERMISSIONS});
+  return json({user:{id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,permissions:u.permissions,cafe:u.cafe,subscription_end:u.subscription_end},mfaRequired:u.role==='owner'&&(!u.mfa_at||u.mfa_at<now()-1800000),mfaEnabled:!!security?.enabled,credentialsReady:!!u.has_credentials,catalog:PERMISSIONS});
  }
  if(path==='/api/mfa/setup'&&request.method==='POST'){
   if(u.role!=='owner')fail('فقط مالک.',403);
@@ -111,7 +124,7 @@ export default {async fetch(request,env){try{
    const end=body.subscription_end||null;if(end&&!/^\d{4}-\d{2}-\d{2}$/.test(end))fail('تاریخ معتبر نیست.');
    const after={name,email,phone,role,permissions,active:body.active===false?0:1,cafe:clean(body.cafe),subscription_end:end};
    const statement=before?query(db,'UPDATE accounts SET name=?,phone=?,role=?,permissions=?,active=?,cafe=?,subscription_end=? WHERE id=?',name,phone,role,JSON.stringify(permissions),after.active,after.cafe,end,id):query(db,'INSERT INTO accounts(id,email,phone,name,role,permissions,active,cafe,subscription_end,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',id,email,phone,name,role,JSON.stringify(permissions),after.active,after.cafe,end,now());
-   await db.batch([statement,auditStatement(db,u,before?'account.updated':'account.created',id,{before,after})]);return json({ok:true});
+   const extra=[];if(body.password){const value=await credentialStatements(db,{id},body,env);extra.push(...value.statements);}await db.batch([statement,...extra,auditStatement(db,u,before?'account.updated':'account.created',id,{before,after})]);return json({ok:true});
   }
  }
  if(path==='/api/content'){

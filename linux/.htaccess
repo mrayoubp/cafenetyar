@@ -1,0 +1,3 @@
+<FilesMatch "^(\.env|setup-token)$|\.sqlite(-wal|-shm)?$">
+    Require all denied
+</FilesMatch>

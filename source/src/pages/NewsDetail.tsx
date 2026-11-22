@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 import { faDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "@/hooks/use-managed-content";

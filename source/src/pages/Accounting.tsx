@@ -48,7 +48,7 @@ import {
 } from "@/components/accounting/FinanceUI";
 import { useAccounting } from "@/hooks/use-accounting";
 import { useSession } from "@/hooks/use-session";
-import { PERMISSIONS } from "@/convex/permissions";
+import { PERMISSIONS } from "@/backend/permissions";
 import { faNumber } from "@/lib/format";
 import { errorMessage } from "@/lib/auth";
 import {

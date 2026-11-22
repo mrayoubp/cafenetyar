@@ -1,7 +1,7 @@
 import { useManagedSettings } from "@/hooks/use-managed-content";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/backend/client";
 
 export function LogoMark({
   className,

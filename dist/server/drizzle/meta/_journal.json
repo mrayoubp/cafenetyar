@@ -36,6 +36,13 @@
       "when": 1795068000000,
       "tag": "0004_site_access",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1795305600000,
+      "tag": "0005_portable_backend",
+      "breakpoints": true
     }
   ]
 }

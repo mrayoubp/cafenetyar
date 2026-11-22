@@ -2,7 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   PERMISSION_DEFINITIONS,
   type PermissionKey,
-} from "@/convex/permissions";
+} from "@/backend/permissions";
 import { cn } from "@/lib/utils";
 
 export function PermissionPicker({

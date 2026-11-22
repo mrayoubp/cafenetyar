@@ -1,9 +1,10 @@
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuth } from "./use-auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AccountingData } from "@/lib/inventory";
 
 export function useAccounting(enabled: boolean) {
-  const token = useAuthToken();
+  const {user}=useAuth();
+  const token = user?.id || null;
   const [state, setState] = useState<{
     token: string | null;
     data?: AccountingData;
@@ -19,7 +20,7 @@ export function useAccounting(enabled: boolean) {
       const response = await fetch("/api/accounting" + path, {
         method: body === undefined ? "GET" : "POST",
         headers: {
-          Authorization: "Bearer " + token,
+
           ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),

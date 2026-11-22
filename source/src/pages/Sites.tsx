@@ -18,8 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import { errorMessage } from "@/lib/auth";
 import { faDateLong, faNumber, faRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";

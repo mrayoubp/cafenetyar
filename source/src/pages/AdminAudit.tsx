@@ -9,10 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 import { downloadCsv } from "@/lib/csv";
 import { faDateLong, faNumber } from "@/lib/format";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/backend/client";
 import {
   ChevronLeft,
   ChevronRight,

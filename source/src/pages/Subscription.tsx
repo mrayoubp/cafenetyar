@@ -2,13 +2,13 @@ import { MonthlyPlanCard, TELEGRAM_PURCHASE_URL } from "@/components/MonthlyPlan
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import { useSession } from "@/hooks/use-session";
 import { errorMessage } from "@/lib/auth";
 import { faDateLong, faNumber, faToman } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "@/backend/client";
 import {
   CalendarClock,
   Check,

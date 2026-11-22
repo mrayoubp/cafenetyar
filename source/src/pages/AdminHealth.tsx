@@ -1,9 +1,9 @@
 import { AdminShell } from "@/components/layout/AdminShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 import { faDateTime, faNumber, faToman } from "@/lib/format";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/backend/client";
 import {
   Activity,
   AlertTriangle,

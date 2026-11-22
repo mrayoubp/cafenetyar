@@ -27,8 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import { errorMessage } from "@/lib/auth";
 import {
   faDateLong,
@@ -38,7 +38,7 @@ import {
   faToman,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "@/backend/client";
 import {
   AlertTriangle,
   BookOpen,
@@ -281,7 +281,7 @@ export default function Agent() {
               {meta && (!meta.aiEnabled || !meta.aiConfigured) && (
                 <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/10 px-3 py-2 text-[10px] text-amber-800 dark:text-amber-200">
                   <AlertTriangle className="size-3.5" />
-                  پاسخ‌های عمومی AI غیرفعال است؛ محاسبه نرخ همچنان کار می‌کند.
+                  دستیار محلی از منابع ذخیره‌شده و نرخ‌های شما پاسخ می‌دهد؛ مدل تولید متن متصل نیست.
                 </span>
               )}
               {meta?.canViewRates !== false && (

@@ -12,8 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import { useSession } from "@/hooks/use-session";
 import {
   PASSWORD_RULE,
@@ -22,7 +22,7 @@ import {
 } from "@/lib/auth";
 import { faDateTime, faNumber, faToman } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "@/backend/client";
 import {
   Activity,
   ArrowLeft,

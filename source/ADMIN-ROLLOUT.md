@@ -1,3 +1,5 @@
+> سند تاریخی نسخهٔ قبلی است. برای نسخهٔ مستقل فعلی، `docs/LINUX-HOSTING.md` در ریشهٔ مخزن را ببینید.
+
 # Managed administration rollout
 
 Implemented: navy/cyan palette, owner-only provisioning, server authorization, enforced owner MFA, blocked public password signup, mobile verification with hashed codes, five attempts and hourly send limits, audit date/section filters, session revocation backend. Individual admin profile editing, permission overrides with before/after audit snapshots, owner session controls and self-service sign-out everywhere are implemented.

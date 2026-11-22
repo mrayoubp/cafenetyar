@@ -1,27 +1,11 @@
-import { useSiteAdmission } from "./use-site-admission";
-import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useQuery } from "convex/react";
-
+import { useBackendAuth } from "@/backend/client";
 export function useAuth() {
-  const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth();
-  const admission = useSiteAdmission();
-  const user = useQuery(api.users.currentUser, admission.allowed ? {} : "skip");
-  const { signIn, signOut } = useAuthActions();
-
-  // Derive isLoading directly from the dependencies instead of managing separate state
-  const isLoading = admission.error
-    ? false
-    : isAuthLoading ||
-      admission.loading ||
-      (isAuthenticated && admission.allowed && user === undefined);
-
+  const auth = useBackendAuth();
   return {
-    isLoading,
-    isAuthenticated: isAuthenticated && admission.allowed,
-    accessError: admission.error,
-    user,
-    signIn,
-    signOut,
+    ...auth,
+    accessError: auth.error,
+    user: auth.context
+      ? { ...auth.context.user, _id: auth.context.user.id, image: null }
+      : null,
   };
 }

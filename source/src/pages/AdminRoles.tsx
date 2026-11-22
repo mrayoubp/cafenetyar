@@ -12,12 +12,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import { useSession } from "@/hooks/use-session";
 import { errorMessage } from "@/lib/auth";
 import { faNumber } from "@/lib/format";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/backend/client";
 import {
   Loader2,
   LockKeyhole,

@@ -7,8 +7,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { api } from "@/backend/api";
+import { useQuery } from "@/backend/client";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,

@@ -24,3 +24,9 @@ jobs:
           name: cafenetyar-worker
           path: dist/server/
           retention-days: 7
+      - run: npm run package:linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cafenetyar-linux
+          path: dist/releases/
+          retention-days: 30

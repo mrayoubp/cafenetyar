@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/use-session";
 import { useAuth } from "@/hooks/use-auth";
-import type { PermissionKey } from "@/convex/permissions";
+import type { PermissionKey } from "@/backend/permissions";
 import { ArrowRight, Loader2, Lock, ShieldAlert, UserX } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";

@@ -28,13 +28,13 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import { useSession } from "@/hooks/use-session";
 import { errorMessage } from "@/lib/auth";
 import { faDateTime, faNumber, faRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "@/backend/client";
 import {
   AlertCircle,
   Archive,

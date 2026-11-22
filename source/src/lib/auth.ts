@@ -1,4 +1,4 @@
-import { ConvexError } from "convex/values";
+
 
 const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
@@ -31,7 +31,7 @@ export function normalizePhone(value: string): string | null {
 }
 
 /**
- * Convex Auth keys password accounts by an email-like identifier. Mobile
+ * The login form keys accounts by an email-like identifier. Mobile
  * numbers are mapped to a local, non-routable address that never leaves the
  * app and is never displayed to users.
  */
@@ -57,13 +57,8 @@ export function isEmailLike(value: string): boolean {
 
 type ErrorData = { code?: string; message?: string };
 
-/** Extracts the Persian message thrown by ConvexError on the server. */
+/** Extracts a localized message from our own API. */
 export function errorMessage(error: unknown, fallback: string): string {
-  if (error instanceof ConvexError) {
-    const data = error.data as ErrorData | string;
-    if (typeof data === "string") return data;
-    if (data && typeof data.message === "string") return data.message;
-  }
   if (error instanceof Error && error.message) {
     const message = error.message.replace(/^Server Error:\s*/i, "").trim();
     if (/[\u0600-\u06FF]/.test(message)) return message;

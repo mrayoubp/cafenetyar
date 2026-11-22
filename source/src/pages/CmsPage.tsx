@@ -2,8 +2,8 @@ import { MonthlyPlanCard } from "@/components/MonthlyPlanCard";
 import { PublicShell } from "@/components/layout/PublicShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { api } from "@/backend/api";
+import { useQuery } from "@/backend/client";
 import { ArrowLeft, BookOpen, Loader2 } from "lucide-react";
 import { Link, useParams } from "react-router";
 

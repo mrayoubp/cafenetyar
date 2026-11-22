@@ -1,0 +1,15 @@
+[Unit]
+Description=Cafenetyar
+After=network.target
+[Service]
+Type=simple
+User=cafenetyar
+WorkingDirectory=/var/www/cafenetyar
+ExecStart=/usr/bin/node --env-file=.env server.mjs
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+[Install]
+WantedBy=multi-user.target

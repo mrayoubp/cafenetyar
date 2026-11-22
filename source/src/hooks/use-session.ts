@@ -1,18 +1,8 @@
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
-
-/**
- * Reactive tenant/session context. Returns `undefined` while loading,
- * `null` when signed out and the full context otherwise.
- */
+import { useBackendAuth } from "@/backend/client";
 export function useSession() {
-  const context = useQuery(api.tenancy.myContext);
-  return {
-    context,
-    isLoading: context === undefined,
-  };
+  const { context, isLoading } = useBackendAuth();
+  return { context, isLoading };
 }
-
 export type SessionContext = NonNullable<
   ReturnType<typeof useSession>["context"]
 >;

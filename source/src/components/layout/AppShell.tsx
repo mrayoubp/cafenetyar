@@ -18,12 +18,12 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { api } from "@/convex/_generated/api";
-import { PERMISSIONS, type PermissionKey } from "@/convex/permissions";
+import { api } from "@/backend/api";
+import { PERMISSIONS, type PermissionKey } from "@/backend/permissions";
 import { useAuth } from "@/hooks/use-auth";
 import { useSession } from "@/hooks/use-session";
 import { faDateLong } from "@/lib/format";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/backend/client";
 import { notifySoon } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import {

@@ -1,8 +1,8 @@
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { api } from "@/backend/api";
+import { useQuery } from "@/backend/client";
 import { ArrowLeft, BookOpen, LifeBuoy, Scale } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";

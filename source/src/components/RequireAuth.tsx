@@ -1,4 +1,4 @@
-import { PhoneVerificationGate } from "./PhoneVerificationGate";
+
 import { LogoMark } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -91,5 +91,5 @@ export function RequireAuth({
     );
   }
 
-  return import.meta.env.VITE_MANAGED_ACCOUNTS === "true" ? <PhoneVerificationGate>{children}</PhoneVerificationGate> : children;
+  return children;
 }

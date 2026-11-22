@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useSession } from "@/hooks/use-session";
 import {
@@ -13,7 +13,7 @@ import {
   isValidPassword,
 } from "@/lib/auth";
 import { faDateLong } from "@/lib/format";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation } from "@/backend/client";
 import {
   Check,
   CreditCard,

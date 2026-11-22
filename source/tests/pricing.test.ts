@@ -2,9 +2,9 @@ import {
   buildPricingResult,
   extractQuantity,
   hasPricingIntent,
-} from "../src/convex/lib/agent";
-import { resolveServicePrice, type PriceResolution } from "../src/convex/lib/pricing";
-import type { Doc, Id } from "../src/convex/_generated/dataModel";
+} from "../src/backend/agent";
+import { resolveServicePrice, type PriceResolution } from "../src/backend/pricing";
+import type { Doc, Id } from "../src/backend/ids";
 import { describe, expect, test } from "vitest";
 
 const serviceId = "services:test" as Id<"services">;

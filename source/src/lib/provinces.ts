@@ -1,2 +1,2 @@
-export { IRAN_PROVINCES, isIranProvince } from "@/convex/provinces";
-export type { IranProvince } from "@/convex/provinces";
+export { IRAN_PROVINCES, isIranProvince } from "@/backend/provinces";
+export type { IranProvince } from "@/backend/provinces";

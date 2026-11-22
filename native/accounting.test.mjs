@@ -99,41 +99,6 @@ function fixture() {
         "کافی‌نت",
         "request-for-user-" + n,
       );
-  const legacy = {
-    items: [
-      {
-        id: "legacy-entry",
-        title: "تراکنش قبلی",
-        direction: "income",
-        amountToman: 1000,
-        category: "سایر",
-        method: "نقدی",
-        occurredAt: Date.now(),
-        createdAt: Date.now(),
-        operatorName: "مالک",
-        isVoided: false,
-      },
-    ],
-  };
-  const calls = [];
-  const remote = async (url, options) => {
-    assert.ok(url.startsWith("https://striped-cobra-115.convex.cloud/api/"));
-    const args = JSON.parse(options.body),
-      who = options.headers.Authorization.replace("Bearer ", "");
-    calls.push({ url, args, who });
-    if (args.path === "tenancy:myContext")
-      return Response.json({ status: "success", value: users[who] || null });
-    if (args.path === "accounting:list")
-      return Response.json({
-        status: "success",
-        value: who === "other" ? { items: [] } : legacy,
-      });
-    if (args.path === "accounting:voidTransaction") {
-      legacy.items[0].isVoided = true;
-      return Response.json({ status: "success", value: { ok: true } });
-    }
-    return Response.json({ status: "error" });
-  };
   async function request(path = "", body, who = "owner") {
     return handleAccounting(
       new Request("https://test.site/api/accounting" + path, {
@@ -142,10 +107,10 @@ function fixture() {
       }),
       { DB },
       body,
-      remote,
+      users[who] || null,
     );
   }
-  return { sqlite, DB, users, legacy, calls, request };
+  return { sqlite, DB, users, request };
 }
 const rid = () => crypto.randomUUID();
 async function product(f, changes = {}, who = "owner") {
@@ -183,10 +148,10 @@ const sale = (id, changes = {}) =>
     ...changes,
   });
 
-test("ledger requires verified cafe identity, preserves legacy rows, and rejects blocked or disabled accounts", async () => {
+test("ledger requires a native cafe context and rejects blocked or disabled accounts", async () => {
   const f = fixture();
   assert.equal((await f.request("", undefined, null)).status, 401);
-  assert.equal((await f.request("", undefined, "unknown")).status, 403);
+  assert.equal((await f.request("", undefined, "unknown")).status, 401);
   for (const change of [
     { isBlocked: true },
     { isGuest: true },
@@ -200,9 +165,8 @@ test("ledger requires verified cafe identity, preserves legacy rows, and rejects
     f.users.owner = base;
   }
   const d = await (await f.request()).json();
-  assert.equal(d.items[0].id, "legacy-entry");
-  assert.equal(d.summary.incomeToman, 1000);
-  assert.ok(f.calls.every((x) => x.who === "owner" || x.who === "unknown"));
+  assert.deepEqual(d.items, []);
+  assert.equal(d.summary.incomeToman,0);
 });
 test("catalog and stock are isolated per cafe; read-only staff cannot change data", async () => {
   const f = fixture(),
@@ -291,7 +255,7 @@ test("sale stores custom prices and discounts, decreases stock once, and keeps i
   assert.equal(row.amountToman, 11000);
   assert.equal(row.lines[0].unitPrice, 6000);
   assert.equal(row.lines[0].title, "کاغذ A4");
-  assert.equal(d.summary.incomeToman, 12000);
+  assert.equal(d.summary.incomeToman, 11000);
 });
 test("services and one-off custom work do not need stock or a predefined catalog item", async () => {
   const f = fixture(),
@@ -394,7 +358,7 @@ test("owner void restores sold quantities exactly once, even if a product was ar
       .quantity,
     10,
   );
-  assert.equal((await (await f.request()).json()).summary.incomeToman, 1000);
+  assert.equal((await (await f.request()).json()).summary.incomeToman, 0);
   assert.equal(
     (await f.request("/void", { transactionId: tx }, "other")).status,
     404,
@@ -455,7 +419,7 @@ test("duplicate SKU and stale edits preserve existing catalog and audit records"
     500,
   );
 });
-test("expenses, remote legacy voids and Iran-day totals remain correct", async () => {
+test("expenses and Iran-day totals remain correct", async () => {
   const f = fixture();
   assert.equal(
     (
@@ -472,17 +436,8 @@ test("expenses, remote legacy voids and Iran-day totals remain correct", async (
     200,
   );
   let d = await (await f.request()).json();
-  assert.equal(d.summary.balanceToman, -2000);
+  assert.equal(d.summary.balanceToman, -3000);
   assert.equal(d.summary.expenseToman, 3000);
-  assert.equal(
-    (await f.request("/void", { transactionId: "legacy-entry" })).status,
-    200,
-  );
-  assert.ok(
-    f.calls.some(
-      (x) => x.args.path === "accounting:voidTransaction" && x.who === "owner",
-    ),
-  );
   const now = Date.parse("2026-11-19T21:00:00Z");
   const summary = summarize(
     [
@@ -518,7 +473,7 @@ test("invalid amounts, foreign catalog IDs, and feature failures reject writes",
     }),
     { DB: f.DB },
     entry(),
-    async () => Response.json({ status: "error" }),
+    {...f.users.owner,permissions:[]},
   );
   assert.equal(r.status, 403);
   assert.equal(

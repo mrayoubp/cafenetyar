@@ -23,13 +23,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import {
   DEFAULT_EMPLOYEE_PERMISSIONS,
   PERMISSION_DEFINITIONS,
   type PermissionKey,
-} from "@/convex/permissions";
+} from "@/backend/permissions";
 import { useSession } from "@/hooks/use-session";
 import {
   PASSWORD_RULE,
@@ -38,7 +38,7 @@ import {
   sanitizePhoneInput,
 } from "@/lib/auth";
 import { faDateLong } from "@/lib/format";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "@/backend/client";
 import {
   Check,
   Eye,

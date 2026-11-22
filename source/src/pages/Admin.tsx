@@ -1,16 +1,16 @@
 import { AdminShell } from "@/components/layout/AdminShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 import {
   ADMIN_PERMISSIONS,
   type AdminPermission,
-} from "@/convex/lib/adminPermissions";
+} from "@/backend/adminPermissions";
 import { useAuth } from "@/hooks/use-auth";
 import { useSession } from "@/hooks/use-session";
 import { errorMessage } from "@/lib/auth";
 import { faDateLong, faNumber, faToman } from "@/lib/format";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/backend/client";
 import {
   Activity,
   Bot,

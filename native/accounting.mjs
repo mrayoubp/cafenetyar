@@ -1,5 +1,3 @@
-import { assertAdmission } from "./site-access.mjs";
-const LEGACY = "https://striped-cobra-115.convex.cloud";
 const MAX = 1_000_000_000,
   LIMIT = 1000,
   DAY = 86400000,
@@ -107,71 +105,20 @@ export function summarize(entries, now = Date.now()) {
   return s;
 }
 
-async function authenticated(request, transport) {
-  const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Bearer ") || authorization.length > 20000)
-    fail("برای حسابداری با حساب کافی‌نت وارد شوید.", 401);
-  async function remote(path, args = {}, mutation = false) {
-    let response;
-    try {
-      response = await transport(
-        LEGACY + (mutation ? "/api/mutation" : "/api/query"),
-        {
-          method: "POST",
-          headers: {
-            Authorization: authorization,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ path, args, format: "json" }),
-          signal: AbortSignal.timeout(15000),
-        },
-      );
-    } catch {
-      fail("ارتباط با حساب کافی‌نت برقرار نشد؛ دوباره تلاش کنید.", 503);
-    }
-    if (!response.ok)
-      fail(
-        "نشست حساب کافی‌نت معتبر نیست؛ دوباره وارد شوید.",
-        response.status === 401 ? 401 : 503,
-      );
-    const data = await response.json();
-    if (data.status !== "success")
-      fail("مجوز حسابداری برای این حساب یا مجموعه فعال نیست.", 403);
-    return data.value;
-  }
-  const c = await remote("tenancy:myContext");
-  if (
-    !c?.user?.id ||
-    !c.cafe?.id ||
-    c.isGuest ||
-    c.isBlocked ||
-    c.membershipActive === false ||
-    c.cafe.status !== "active" ||
-    c.user.requiresPhoneVerification
-  )
-    fail("حساب یا کافی‌نت شما اجازهٔ استفاده از این بخش را ندارد.", 403);
-  if (!c.permissions?.includes("accounting.view"))
-    fail("مجوز مشاهدهٔ حسابداری لازم است.", 403);
-  // The original backend checks the CMS feature and cafe access again.
-  const legacy = await remote("accounting:list");
-  if (!Array.isArray(legacy?.items))
-    fail("دفتر قبلی قابل خواندن نیست؛ دوباره تلاش کنید.", 503);
-  return { c, legacy, remote };
-}
-
 export async function handleAccounting(
   request,
   env,
   body = {},
-  transport = fetch,
+  context = null,
 ) {
   try {
     const db = env.DB;
     if (!db) fail("دیتابیس حسابداری متصل نیست.", 503);
     if (!["GET", "POST"].includes(request.method))
       return json({ error: "روش درخواست مجاز نیست." }, 405);
-    const { c, legacy, remote } = await authenticated(request, transport);
-    await assertAdmission(db, env, c);
+    const c = context;
+    if(!c?.user?.id || !c.cafe?.id)fail("ابتدا با حساب کافی‌نت وارد شوید.",401);
+    if(c.isGuest||c.isBlocked||c.membershipActive===false||c.cafe.status!=="active"||!c.permissions?.includes("accounting.view"))fail("مجوز حسابداری یا فضای کاری فعال لازم است.",403);
     const cafe = c.cafe.id,
       path = new URL(request.url).pathname;
     if (request.method === "GET" && path === "/api/accounting") {
@@ -210,7 +157,6 @@ export async function handleAccounting(
         });
       }
       const items = [
-        ...legacy.items.map((x) => ({ ...x, origin: "legacy", lines: [] })),
         ...rows.map((x) => ({
           ...entryFor(x),
           lines: byEntry.get(x.id) || [],
@@ -666,10 +612,6 @@ export async function handleAccounting(
       if (!c.isOwner)
         fail("فقط صاحب کافی‌نت می‌تواند تراکنش را ابطال کند.", 403);
       const id = text(body.transactionId, "شناسه تراکنش", 100);
-      if (!id.startsWith("native:")) {
-        await remote("accounting:voidTransaction", { transactionId: id }, true);
-        return json({ ok: true });
-      }
       const entry = await one(
         db,
         "SELECT * FROM finance_entries WHERE id=? AND cafe_id=?",

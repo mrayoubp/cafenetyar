@@ -12,3 +12,8 @@ backups/
 .wrangler/
 
 .cloudflare-deploy.generated.json
+
+!linux/.env.example
+dist/linux/
+dist/releases/
+data/

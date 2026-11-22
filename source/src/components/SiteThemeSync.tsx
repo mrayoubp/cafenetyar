@@ -1,5 +1,5 @@
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { api } from "@/backend/api";
+import { useQuery } from "@/backend/client";
 import { useEffect } from "react";
 
 const FONT_STACKS = {

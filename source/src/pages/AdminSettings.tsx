@@ -12,14 +12,14 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { ADMIN_PERMISSIONS } from "@/convex/lib/adminPermissions";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
+import { ADMIN_PERMISSIONS } from "@/backend/adminPermissions";
 import { useSession } from "@/hooks/use-session";
 import { errorMessage } from "@/lib/auth";
 import { faDateLong, faNumber, faToman } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/backend/client";
 import {
   Bell,
   Bot,

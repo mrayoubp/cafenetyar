@@ -1,11 +1,11 @@
 import { LogoMark } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useSession } from "@/hooks/use-session";
 import { errorMessage, maskPhone } from "@/lib/auth";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@/backend/client";
 import {
   Check,
   Copy,

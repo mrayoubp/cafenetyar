@@ -1,8 +1,8 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useQuery } from "convex/react";
+import { useQuery } from "@/backend/client";
 import { useSyncExternalStore } from "react";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/backend/api";
 
 const subscribe = () => () => {};
 

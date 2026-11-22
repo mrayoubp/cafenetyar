@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { useAction, useQuery } from "@/backend/client";
+import { api } from "@/backend/api";
+import type { Id } from "@/backend/ids";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
